@@ -68,7 +68,6 @@ sliders.forEach(function(container) {
     .ict-slide a { display: block; }
     </style>
 {% endblock %} #}
-
 {% block element_ict_shop_look_slider %}
 
 {% set sliderConfig = {
@@ -79,38 +78,41 @@ sliders.forEach(function(container) {
     autoplayTimeout: element.config.autoplayTimeout.value
 } %}
 
-{% set sliderItems = element.data.sliderItems ?? element.config.sliderItems.value ?? [] %}
+{# {% set sliderItems = element.data.sliderItems ?? element.config.sliderItems.value ?? [] %} #}
+{% set sliderItems = element.data.sliderItems ?? [] %}
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tiny-slider/2.9.4/tiny-slider.css">
 
 <div class="ict-shop-look-slider" data-shop-look-slider-options='{{ sliderConfig|json_encode }}'>
 
     <div class="ict-slider-container">
+    {# {{dump("hsdds",sliderItems)}} #}
+        {% if sliderItems is not empty %}
 
-        {% if sliderItems|length > 0 %}
-
-            {% for item in sliderItems %}
+        {% for item in sliderItems %}
+            {% if item.media and item.media.url %}
                 <div class="ict-slide">
 
                     {% if item.url %}
                         <a href="{{ item.url }}" {% if item.newTab %}target="_blank" rel="noopener"{% endif %}>
                     {% endif %}
 
-                    <img src="{{ item.media.url ?? item.mediaUrl }}" alt="">
+                    <img src="{{ item.media.url }}" alt="">
 
                     {% if item.url %}
                         </a>
                     {% endif %}
 
                 </div>
-            {% endfor %}
+            {% endif %}
+        {% endfor %}
 
         {% else %}
 
             {# Default images if none configured #}
             {% for i in 1..6 %}
                 <div class="ict-slide">
-                    <img src="{{ asset('bundles/storefront/assets/img/cms/preview_mountain_small.webp') }}" alt="">
+                  <img src="{{ asset('bundles/administration/administration/static/img/cms/preview_mountain_large.webp') }}" alt="">
                 </div>
             {% endfor %}
 
@@ -123,16 +125,11 @@ sliders.forEach(function(container) {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tiny-slider/2.9.4/min/tiny-slider.js"></script>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-
+window.addEventListener('load', function () {
     var sliders = document.querySelectorAll('.ict-slider-container');
-
     sliders.forEach(function(container) {
-
         if (container.children.length > 0) {
-
             var options = {{ sliderConfig|json_encode|raw }};
-
             tns({
                 container: container,
                 items: 6,
@@ -140,6 +137,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 gutter: 20,
                 controls: options.navigationArrows !== 'none',
                 controlsPosition: options.navigationArrows === 'outside' ? 'bottom' : 'top',
+                controlsText: ['<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/></svg>', '<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/></svg>'],
                 nav: options.navigationDots !== 'none',
                 navPosition: options.navigationDots === 'outside' ? 'bottom' : 'top',
                 mouseDrag: true,
@@ -154,32 +152,26 @@ document.addEventListener('DOMContentLoaded', function () {
                     480: { items: 2 }
                 }
             });
-
         }
-
     });
-
 });
 </script>
 
 <style>
-.ict-shop-look-slider {
-    padding: 20px 0;
-}
-
-.ict-slide {
-    padding: 0 10px;
-}
-
-.ict-slide img {
-    width: 100%;
-    height: auto;
-    display: block;
-}
-
-.ict-slide a {
-    display: block;
-}
+.ict-slider-container { visibility: hidden; }
+.tns-slider { visibility: visible !important; }
+.ict-shop-look-slider { padding: 20px 60px; position: relative; }
+.ict-slide { padding: 0 10px; }
+.ict-slide img { width: 100%; height: auto; display: block; }
+.ict-slide a { display: block; }
+.tns-controls { position: absolute; top: 50%; transform: translateY(-50%); width: 100%; left: 0; right: 0; pointer-events: none; }
+.tns-controls button { position: absolute; background: #007bff; color: white; border: none; padding: 0; cursor: pointer; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; pointer-events: auto; z-index: 10; }
+.tns-controls button:first-child { left: -60px; }
+.tns-controls button:last-child { right: -60px; }
+.tns-controls button:hover { background: #0056b3; }
+.tns-nav { text-align: center; margin-top: 20px; }
+.tns-nav button { width: 10px; height: 10px; background: #ccc; border: none; border-radius: 50%; margin: 0 5px; cursor: pointer; }
+.tns-nav button.tns-nav-active { background: #007bff; }
 </style>
 
 {% endblock %}
