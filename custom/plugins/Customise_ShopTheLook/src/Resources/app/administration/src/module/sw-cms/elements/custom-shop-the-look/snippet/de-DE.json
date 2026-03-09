@@ -1,0 +1,42 @@
+{
+    "sw-cms": {
+        "elements": {
+            "general": {
+                "config": {
+                    "label": {
+                        "style": "Style"
+                    }
+                }
+            },
+            "custom-shop-the-look": {
+                "title": "Shop-The-Look",
+                "label": {
+                    "hoverCardHideButton": "Button in Hovercard ausblenden",
+                    "videoActive": "Video aktiv",
+                    "positionDescription": "NUtzen `0` bis `100` für die Positionierung deiner Hotspots (Oben, Links)",
+                    "enablePrices": "Preise anzeigen",
+                    "enableAddToCart": "In den Warenkorb Button anzeigen",
+                    "enableDirectUrl": "Hotspots sind Links zu den Produkten",
+                    "enableAnimatedHotspots": "Hotspots mit Pulse Animation",
+                    "custom1": "Custom Field 1",
+                    "custom2": "Custom Field 2",
+                    "custom3": "Custom Field 3",
+                    "custom4": "Custom Field 4",
+                    "topPosition": "Position Open",
+                    "leftPosition": "Position Links",
+                    "imageProducts": "Bild > Produkte",
+                    "productsImage": "Produkte > Bild",
+                    "products": "Nur Produkte",
+                    "image": "Nur Bild",
+                    "productsWidth": "Breite der Produktliste",
+                    "productsWidthHelpText": "Wenn die Breite über 900px liegt, wird das Bild auf der linken Seite nicht angezeigt. Wir empfehlen, die Breite unter 900px zu halten."
+                },
+                "tab": {
+                    "general": "Allgemein",
+                    "hotspots": "Hotspots",
+                    "other": "Sonstige"
+                }
+            }
+        }
+    }
+}

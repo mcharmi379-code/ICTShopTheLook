@@ -1,0 +1,43 @@
+.sw-cms-el-preview-custom-shop-the-look {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    img {
+        position: absolute;
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .container {
+        position: relative;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 10px;
+        .container-icon {
+            float: left;
+            font-size: 30px;
+        }
+    }
+}
+
+.sw-cms-preview-moorl-shop-the-look {
+    padding: 3px;
+    height: 160px;
+    position: relative;
+    .sw-cms-el-preview-moorl-shop-the-look {
+        position: relative;
+        display: flex;
+        .profile {
+            padding: 22px 0 0;
+            margin: 22px 0 0;
+            background-color: #f7f7f7;
+            img {
+                top: 0;
+            }
+        }
+    }
+}

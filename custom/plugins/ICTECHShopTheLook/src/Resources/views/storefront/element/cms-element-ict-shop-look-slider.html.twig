@@ -1,0 +1,185 @@
+{# {% block element_ict_shop_look_slider %}
+    {% set sliderConfig = {
+        'navigationArrows': element.config.navigationArrows.value,
+        'navigationDots': element.config.navigationDots.value,
+        'speed': element.config.speed.value,
+        'autoSlide': element.config.autoSlide.value,
+        'autoplayTimeout': element.config.autoplayTimeout.value
+    } %}
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tiny-slider/2.9.4/tiny-slider.css">
+
+    <div class="ict-shop-look-slider" data-shop-look-slider="true" data-shop-look-slider-options='{{ sliderConfig|json_encode }}'>
+        <div class="ict-slider-container">
+            {% for item in element.data.sliderItems %}
+                <div class="ict-slide">
+                    {% if item.url %}
+                    <a href="{{ item.url }}" {% if item.newTab %}target="_blank" rel="noopener"{% endif %}>
+                    {% endif %}
+                        <img src="{{ item.media.url }}" alt="">
+                    {% if item.url %}
+                    </a>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tiny-slider/2.9.4/min/tiny-slider.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var sliders = document.querySelectorAll('.ict-slider-container');
+
+sliders.forEach(function(container) {
+    if (container.children.length > 0) {
+        var options = {{ sliderConfig|json_encode|raw }};
+
+        tns({
+            container: container,
+            items: 6,
+            slideBy: 1,
+            gutter: 20,
+            controls: options.navigationArrows !== 'none',
+            controlsPosition: options.navigationArrows === 'outside' ? 'bottom' : 'top',
+            nav: options.navigationDots !== 'none',
+            navPosition: options.navigationDots === 'outside' ? 'bottom' : 'top',
+            mouseDrag: true,
+            speed: options.speed || 300,
+            autoplay: options.autoSlide || false,
+            autoplayTimeout: options.autoplayTimeout || 5000,
+            autoplayButtonOutput: false,
+            responsive: {
+                1200: { items: 6 },
+                992: { items: 4 },
+                768: { items: 3 },
+                480: { items: 2 }
+            }
+        });
+
+    }
+});
+    });
+    </script>
+
+    <style>
+    .ict-shop-look-slider { padding: 20px 0; }
+    .ict-slide { padding: 0 10px; }
+    .ict-slide img { width: 100%; height: auto; display: block; }
+    .ict-slide a { display: block; }
+    </style>
+{% endblock %} #}
+
+{% block element_ict_shop_look_slider %}
+
+{% set sliderConfig = {
+    navigationArrows: element.config.navigationArrows.value,
+    navigationDots: element.config.navigationDots.value,
+    speed: element.config.speed.value,
+    autoSlide: element.config.autoSlide.value,
+    autoplayTimeout: element.config.autoplayTimeout.value
+} %}
+
+{% set sliderItems = element.data.sliderItems ?? element.config.sliderItems.value ?? [] %}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tiny-slider/2.9.4/tiny-slider.css">
+
+<div class="ict-shop-look-slider" data-shop-look-slider-options='{{ sliderConfig|json_encode }}'>
+
+    <div class="ict-slider-container">
+
+        {% if sliderItems|length > 0 %}
+
+            {% for item in sliderItems %}
+                <div class="ict-slide">
+
+                    {% if item.url %}
+                        <a href="{{ item.url }}" {% if item.newTab %}target="_blank" rel="noopener"{% endif %}>
+                    {% endif %}
+
+                    <img src="{{ item.media.url ?? item.mediaUrl }}" alt="">
+
+                    {% if item.url %}
+                        </a>
+                    {% endif %}
+
+                </div>
+            {% endfor %}
+
+        {% else %}
+
+            {# Default images if none configured #}
+            {% for i in 1..6 %}
+                <div class="ict-slide">
+                    <img src="{{ asset('bundles/storefront/assets/img/cms/preview_mountain_small.webp') }}" alt="">
+                </div>
+            {% endfor %}
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tiny-slider/2.9.4/min/tiny-slider.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    var sliders = document.querySelectorAll('.ict-slider-container');
+
+    sliders.forEach(function(container) {
+
+        if (container.children.length > 0) {
+
+            var options = {{ sliderConfig|json_encode|raw }};
+
+            tns({
+                container: container,
+                items: 6,
+                slideBy: 1,
+                gutter: 20,
+                controls: options.navigationArrows !== 'none',
+                controlsPosition: options.navigationArrows === 'outside' ? 'bottom' : 'top',
+                nav: options.navigationDots !== 'none',
+                navPosition: options.navigationDots === 'outside' ? 'bottom' : 'top',
+                mouseDrag: true,
+                speed: options.speed || 300,
+                autoplay: options.autoSlide || false,
+                autoplayTimeout: options.autoplayTimeout || 5000,
+                autoplayButtonOutput: false,
+                responsive: {
+                    1200: { items: 6 },
+                    992: { items: 4 },
+                    768: { items: 3 },
+                    480: { items: 2 }
+                }
+            });
+
+        }
+
+    });
+
+});
+</script>
+
+<style>
+.ict-shop-look-slider {
+    padding: 20px 0;
+}
+
+.ict-slide {
+    padding: 0 10px;
+}
+
+.ict-slide img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.ict-slide a {
+    display: block;
+}
+</style>
+
+{% endblock %}

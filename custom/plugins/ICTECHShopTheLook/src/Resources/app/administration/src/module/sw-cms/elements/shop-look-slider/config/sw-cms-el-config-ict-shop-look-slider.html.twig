@@ -1,0 +1,112 @@
+<div class="sw-cms-el-config-ict-shop-look-slider">
+    <sw-tabs
+        position-identifier="sw-cms-element-config-ict-shop-look-slider"
+        default-item="content"
+    >
+        <template #default="{ active }">
+            <sw-tabs-item
+                :title="$t('sw-cms.elements.general.config.tab.content')"
+                name="content"
+                :active-tab="active"
+            >
+                {{ $t('sw-cms.elements.general.config.tab.content') }}
+            </sw-tabs-item>
+            <sw-tabs-item
+                :title="$t('sw-cms.elements.general.config.tab.settings')"
+                name="settings"
+                :active-tab="active"
+            >
+                {{ $t('sw-cms.elements.general.config.tab.settings') }}
+            </sw-tabs-item>
+        </template>
+
+        <template #content="{ active }">
+            <div v-show="active === 'content'">
+                <sw-media-list-selection-v2
+                    :entity-media-items="mediaItems"
+                    :entity="entity"
+                    :upload-tag="uploadTag"
+                    :default-folder-name="defaultFolderName"
+                    @upload-finish="onImageUpload"
+                    @item-remove="onItemRemove"
+                    @open-sidebar="onOpenMediaModal"
+                    @item-sort="onItemSort"
+                />
+            </div>
+
+            <div v-show="active === 'settings'">
+                <mt-select
+                    v-model="element.config.navigationArrows.value"
+                    :label="$t('sw-cms.elements.imageSlider.config.label.navigationArrows')"
+                    :options="navigationArrowsValueOptions"
+                    @update:model-value="emitUpdateEl"
+                />
+
+                <mt-select
+                    v-model="element.config.navigationDots.value"
+                    :label="$t('sw-cms.elements.imageSlider.config.label.navigationDots')"
+                    :options="navigationDotsValueOptions"
+                    @update:model-value="emitUpdateEl"
+                />
+
+                <mt-number-field
+                    v-model="element.config.speed.value"
+                    :label="$t('sw-cms.elements.general.config.label.speed')"
+                    number-type="int"
+                    :min="0"
+                    :max="3600000"
+                />
+
+                <mt-switch
+                    v-model="element.config.autoSlide.value"
+                    :label="$t('sw-cms.elements.general.config.label.autoSlide')"
+                    bordered
+                    @update:model-value="onChangeAutoSlide"
+                />
+
+                <mt-number-field
+                    v-model="element.config.autoplayTimeout.value"
+                    :label="$t('sw-cms.elements.general.config.label.autoplayTimeout')"
+                    number-type="int"
+                    :min="0"
+                    :max="3600000"
+                />
+
+                <div
+                    v-for="(sliderItem, index) in items"
+                    :key="index"
+                    style="margin-top:20px;padding:15px;border:1px solid #ddd;"
+                >
+                    <img
+                        v-if="sliderItem.mediaUrl"
+                        :src="sliderItem.mediaUrl"
+                        style="width:60px;height:60px;object-fit:cover;margin-bottom:10px;"
+                    >
+
+                    <mt-url-field
+                        v-model="sliderItem.url"
+                        :placeholder="$t('sw-cms.elements.image.config.placeholder.enterUrl')"
+                        :label="$t('sw-cms.elements.image.config.label.linkTo')"
+                    />
+
+                    <mt-switch
+                        v-model="sliderItem.newTab"
+                        :label="$t('sw-cms.elements.image.config.label.linkNewTab')"
+                        bordered
+                    />
+                </div>
+            </div>
+        </template>
+    </sw-tabs>
+
+    <sw-media-modal-v2
+        v-if="mediaModalIsOpen"
+        variant="full"
+        :caption="$t('sw-cms.elements.general.config.caption.mediaUpload')"
+        :entity-context="cmsPageState.entityName"
+        :initial-folder-id="cmsPageState.defaultMediaFolderId"
+        @media-upload-remove-image="onItemRemove"
+        @media-modal-selection-change="onMediaSelectionChange"
+        @modal-close="onCloseMediaModal"
+    />
+</div>

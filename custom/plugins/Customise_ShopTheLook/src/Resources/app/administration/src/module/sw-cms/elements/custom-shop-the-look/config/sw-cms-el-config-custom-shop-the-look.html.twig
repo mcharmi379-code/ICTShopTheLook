@@ -1,0 +1,127 @@
+{% block sw_cms_config_custom_shop_the_look %}
+    <div class="sw-cms-el-config-custom-shop-the-look">
+        <sw-tabs defaultItem="general">
+            <template slot-scope="{ active }" >
+                {% block sw_cms_config_custom_shop_the_look_tabs %}
+                    <sw-tabs-item :title="$tc(snippetPrefix + 'tab.general')"
+                                  name="general"
+                                  :activeTab="active">
+                        {{ $tc(snippetPrefix + 'tab.general') }}
+                    </sw-tabs-item>
+                {% endblock %}
+            </template>
+
+            <template slot="content" slot-scope="{ active }">
+                {% block sw_cms_config_custom_shop_the_look_content %}
+                    <sw-container v-if="active === 'general'">
+                        <sw-container columns="1fr 1fr" gap="0 10px">
+                            <sw-select-field
+                                    :label="$tc('sw-cms.elements.general.config.label.style')"
+                                    v-model="element.config.style.value">
+                                <option value="image-products">{{ $tc(snippetPrefix + 'label.imageProducts') }}</option>
+                                <option value="products-image">{{ $tc(snippetPrefix + 'label.productsImage') }}</option>
+                                <option value="products">{{ $tc(snippetPrefix + 'label.products') }}</option>
+                                <option value="image">{{ $tc(snippetPrefix + 'label.image') }}</option>
+                            </sw-select-field>
+
+                            <sw-text-field
+                                    :label="$tc(snippetPrefix + 'label.productsWidth')"
+                                    :help-text="$tc('sw-cms.elements.custom-shop-the-look.label.productsWidthHelpText')"
+                                    v-model="element.config.productsWidth.value">
+                            </sw-text-field>
+                        </sw-container>
+
+
+                        <sw-cms-el-config-custom-product-buy-list
+                                v-bind="{ element }"
+                                @products-change="onProductsChange">
+                        </sw-cms-el-config-custom-product-buy-list>
+                    </sw-container>
+
+                    <sw-container v-if="products && active === 'hotspots'">
+                        <div class="hotspots">
+                            <div class="hotspot-area">
+                                <div class="hotspot-area-image">
+                                    <video v-if="element.config.videoActive.value"
+                                           autoplay
+                                           muted
+                                           loop
+                                           class="video">
+                                        <source :src="mediaUrl" type="video/mp4">
+                                    </video>
+
+                                    <img v-else :src="mediaUrl">
+
+                                    <div class="hotspot-area-image-overlay" ref="hotspotArea">
+                                        <template v-if="element.data.products">
+                                            <div v-if="element.config.productMediaHotspots.value[product.id]"
+                                                 v-for="product in element.data.products"
+                                                 :style="pointerPositionCss(product.id)"
+                                                 class="hotspot-area-image-overlay-dot"
+                                                 v-tooltip="{message: product.name, position: 'top'}">
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="product-list">
+                                <div class="product-list-content">
+                                    <div v-if="element.config.productMediaHotspots.value[product.id]"
+                                         v-for="product in products"
+                                         class="product-list-content-item">
+                                        <div style="grid-area: a;">{{ product.translated.name }}</div>
+
+                                        <sw-field style="grid-area: b;"
+                                                  type="number"
+                                                  min="0"
+                                                  max="100"
+                                                  step="1"
+                                                  :placeholder="$tc(snippetPrefix + 'label.topPosition')"
+                                                  v-model="element.config.productMediaHotspots.value[product.id].top">
+                                        </sw-field>
+
+                                        <sw-field style="grid-area: c;"
+                                                  type="number"
+                                                  min="0"
+                                                  max="100"
+                                                  step="1"
+                                                  :placeholder="$tc(snippetPrefix + 'label.leftPosition')"
+                                                  v-model="element.config.productMediaHotspots.value[product.id].left">
+                                        </sw-field>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </sw-container>
+
+                    <sw-container v-if="active === 'other'">
+                        <sw-container columns="1fr 1fr" gap="0 10px">
+                            <sw-field v-model="element.config.custom1.value"
+                                      :label="$tc(snippetPrefix + 'label.custom1')">
+                            </sw-field>
+
+                            <sw-field v-model="element.config.custom2.value"
+                                      :label="$tc(snippetPrefix + 'label.custom2')">
+                            </sw-field>
+
+                            <sw-field v-model="element.config.custom3.value"
+                                      :label="$tc(snippetPrefix + 'label.custom3')">
+                            </sw-field>
+
+                            <sw-field v-model="element.config.custom4.value"
+                                      :label="$tc(snippetPrefix + 'label.custom4')">
+                            </sw-field>
+
+                            <sw-field v-model="element.config.hoverCardHideButton.value"
+                                      bordered
+                                      type="switch"
+                                      :label="$tc(snippetPrefix + 'label.hoverCardHideButton')">
+                            </sw-field>
+                        </sw-container>
+                    </sw-container>
+                {% endblock %}
+            </template>
+        </sw-tabs>
+    </div>
+{% endblock %}

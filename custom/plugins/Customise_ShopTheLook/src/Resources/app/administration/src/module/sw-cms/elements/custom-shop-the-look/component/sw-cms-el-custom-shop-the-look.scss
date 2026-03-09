@@ -1,0 +1,115 @@
+@import "~scss/variables";
+
+.sw-cms-el-custom-shop-the-look {
+  min-height: 200px;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+
+  &.products-image {
+    flex-direction: row-reverse;
+  }
+
+  .hotspot-area {
+    width: calc(100% - var(--products-width) - 20px);
+  }
+
+  .product-list {
+    width: var(--products-width);
+    height: 100%;
+
+    .product-list-content-item {
+      display: grid;
+      grid-template-columns: auto 120px 1fr;
+      align-items: center;
+      grid-gap: 8px;
+      border-bottom: 1px solid #888888;
+
+      img {
+        width: 100%;
+      }
+
+      .product-list-content-item-info {
+        h4 {
+          margin-bottom: 10px;
+        }
+
+        .product-list-content-item-info-price {
+          text-align: right;
+        }
+      }
+    }
+  }
+
+  .product-list-buy {
+    margin-top: 10px;
+
+    .product-list-buy-price {
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: flex-end;
+
+      div {
+        vertical-align: baseline;
+        line-height: 30px;
+      }
+
+      .product-list-buy-price-total {
+        font-size: 1.3em;
+        margin-left: 5px;
+      }
+    }
+  }
+
+  .hotspot-area-image {
+    position: relative;
+    width: 100%;
+    height: auto;
+
+    .hotspot-area-image-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+
+      .hotspot-area-image-overlay-dot {
+        margin-top: -10px;
+        margin-left: -10px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 2px solid $color-shopware-brand-800;
+        cursor: pointer;
+        position: absolute;
+      }
+    }
+  }
+
+  img,
+  video {
+    display: block;
+    height: auto;
+    width: 100%;
+  }
+
+  &.image {
+    .hotspot-area {
+      width: 100%;
+    }
+
+    .product-list {
+      display: none;
+    }
+  }
+
+  &.products {
+    .hotspot-area {
+      display: none;
+    }
+
+    .product-list {
+      width: 100%;
+    }
+  }
+}

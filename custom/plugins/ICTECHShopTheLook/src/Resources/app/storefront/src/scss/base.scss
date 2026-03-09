@@ -1,0 +1,20 @@
+@import "~tiny-slider/dist/tiny-slider.css";
+
+.ict-shop-look-slider {
+    position: relative;
+    padding: 20px 0;
+}
+
+.ict-slider-container {
+    margin: 0 auto;
+}
+
+.ict-slide img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.ict-slide a {
+    display: block;
+}
