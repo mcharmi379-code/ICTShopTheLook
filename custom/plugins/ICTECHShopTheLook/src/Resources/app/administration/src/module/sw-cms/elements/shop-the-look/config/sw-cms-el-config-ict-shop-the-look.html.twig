@@ -1,0 +1,130 @@
+<div class="sw-cms-el-config-ict-shop-the-look">
+
+    <sw-tabs default-item="content">
+
+        <template #default="{ active }">
+            <sw-tabs-item name="content" :active-tab="active">Content</sw-tabs-item>
+            <sw-tabs-item name="hotspots" :active-tab="active">Hotspots</sw-tabs-item>
+            <sw-tabs-item name="settings" :active-tab="active">Settings</sw-tabs-item>
+        </template>
+
+        <template #content="{ active }">
+
+            <div v-show="active === 'content'">
+
+                <sw-media-upload-v2
+                    label="Look Image"
+                    :source="element.config.lookImage.value"
+                    @media-upload-sidebar-open="onMediaUploadOpen"
+                    @media-upload-remove-image="onRemoveImage"
+                />
+
+            <sw-entity-multi-select
+                label="Products"
+                entity="product"
+                :entity-collection="products"
+                :criteria="productCriteria"
+                :context="productContext"
+                advanced-selection-component="sw-advanced-selection-product"
+                @update:entity-collection="setProductCollection">
+
+
+
+</sw-entity-multi-select>
+
+            </div>
+
+            <div v-show="active === 'hotspots'">
+
+                <div v-if="element.config.lookImage.value">
+
+                    <div class="hotspot-editor" style="position:relative;display:inline-block;">
+
+                        <img
+                            :src="element.config.lookImage.value.url"
+                            style="max-width:100%;"
+                            @click="addHotspot"
+                        />
+
+                        <div
+                            v-for="(hotspot, index) in element.config.hotspots.value"
+                            :key="index"
+                            :style="{
+                                position:'absolute',
+                                left:hotspot.x+'%',
+                                top:hotspot.y+'%',
+                                width:'20px',
+                                height:'20px',
+                                background:'#007bff',
+                                borderRadius:'50%',
+                                cursor:'pointer'
+                            }"
+                            @click.stop="removeHotspot(index)"
+                        ></div>
+
+                    </div>
+
+                    <p>Click on image to add hotspots. Click hotspot to remove.</p>
+
+                </div>
+
+                <p v-else>Upload an image first</p>
+
+            </div>
+
+            <div v-show="active === 'settings'">
+
+                <mt-text-field
+                    v-model="element.config.productListWidth.value"
+                    label="Product List Width"
+                    @update:model-value="$emit('element-update', element)"
+                />
+
+                <mt-select
+                    v-model="element.config.layoutStyle.value"
+                    label="Layout Style"
+                    :options="layoutOptions"
+                    @update:model-value="$emit('element-update', element)"
+                />
+
+                <mt-switch
+                    v-model="element.config.showPrices.value"
+                    label="Show Prices"
+                    bordered
+                    @update:model-value="$emit('element-update', element)"
+                />
+
+                <mt-switch
+                    v-model="element.config.showVariantSwitch.value"
+                    label="Show Variant Switch"
+                    bordered
+                    @update:model-value="$emit('element-update', element)"
+                />
+
+                <mt-switch
+                    v-model="element.config.addAllToCart.value"
+                    label="Add All Products to Cart Button"
+                    bordered
+                    @update:model-value="$emit('element-update', element)"
+                />
+
+                <mt-switch
+                    v-model="element.config.addSingleProduct.value"
+                    label="Add Single Product to Cart Button"
+                    bordered
+                    @update:model-value="$emit('element-update', element)"
+                />
+
+            </div>
+
+        </template>
+
+    </sw-tabs>
+
+    <sw-media-modal-v2
+        v-if="mediaModalOpen"
+        @modal-close="onMediaModalClose"
+        @media-modal-selection-change="onMediaSelect"
+    />
+
+</div>
