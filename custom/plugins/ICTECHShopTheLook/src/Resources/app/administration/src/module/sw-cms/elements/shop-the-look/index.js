@@ -25,14 +25,34 @@ Shopware.Service('cmsService').registerCmsElement({
             value: []
         },
 
+        productListWidth: {
+            source: 'static',
+            value: '300px'
+        },
+
+        layoutStyle: {
+            source: 'static',
+            value: 'image-products'
+        },
+
         showPrices: {
             source: 'static',
             value: true
         },
 
-        layoutStyle: {
+        showVariantSwitch: {
             source: 'static',
-            value: 'side-by-side'
+            value: true
+        },
+
+        addAllToCart: {
+            source: 'static',
+            value: true
+        },
+
+        addSingleProduct: {
+            source: 'static',
+            value: true
         }
     }
 });
