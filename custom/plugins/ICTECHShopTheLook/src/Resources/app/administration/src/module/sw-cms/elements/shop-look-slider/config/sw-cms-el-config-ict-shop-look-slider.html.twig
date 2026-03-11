@@ -22,6 +22,12 @@
 
         <template #content="{ active }">
             <div v-show="active === 'content'">
+                <sw-upload-listener
+                    :upload-tag="uploadTag"
+                    auto-upload
+                    @media-upload-finish="onImageUpload"
+                />
+
                 <sw-media-list-selection-v2
                     :entity-media-items="mediaItems"
                     :entity="entity"

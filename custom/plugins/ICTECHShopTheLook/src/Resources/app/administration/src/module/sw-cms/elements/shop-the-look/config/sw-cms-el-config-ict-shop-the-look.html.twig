@@ -12,9 +12,17 @@
 
             <div v-show="active === 'content'">
 
+                <sw-upload-listener
+                    :upload-tag="uploadTag"
+                    auto-upload
+                    @media-upload-finish="onMediaUpload"
+                />
+
                 <sw-media-upload-v2
                     label="Look Image"
                     :source="element.config.lookImage.value"
+                    :upload-tag="uploadTag"
+                    :default-folder="defaultFolderName"
                     @media-upload-sidebar-open="onMediaUploadOpen"
                     @media-upload-remove-image="onRemoveImage"
                 />
