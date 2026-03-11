@@ -1,0 +1,53 @@
+.annotation-banner-products__delete-action:hover {
+  background: #e4f4ff;
+  color: #ff0000;
+}
+
+.annotation-banner-products-add-modal-info {
+  .annotation-banner-products-banner-image-preview-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+
+    .annotation-banner-products-banner-image-preview {
+      position: absolute;
+      padding-right: 5px;
+      top: 0px;
+      bottom: -10px;
+      left: 0px;
+      right: -10px;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+    }
+
+    .previous-selected-points {
+      .annotation-banner-input-type-pointer-preview {
+        .pointer_slide-on_xy_axis {
+          background: #189eff;
+        }
+      }
+    }
+
+    .annotation-banner-input-type-pointer-preview {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      padding-right: 14px;
+
+      .pointer_slide-on_xy_axis {
+        border: 1px solid #444;
+        padding: 0 5px;
+        border-radius: 15px;
+        width: 15px;
+        height: 15px;
+        display: inline-block;
+        background: #fff;
+        box-shadow: 0px 0px 0px 1px #dadae5;
+      }
+    }
+  }
+}

@@ -1,0 +1,96 @@
+{% block annotation_banner_detail %}
+    <sw-page class="annotation-banner-detail">
+        <template #smart-bar-actions>
+            <sw-button :routerLink="{ name: 'annotation.banner.list'}">
+                {{ $t('annotation_banner.detail.cancelButton') }}
+            </sw-button>
+
+            <sw-button-process
+                    :isLoading="isLoading"
+                    :processSuccess="processSuccess"
+                    @process-finish="saveFinish"
+                    variant="primary"
+                    @click="onClickSave">
+                {{ $t('annotation_banner.detail.saveButton') }}
+            </sw-button-process>
+        </template>
+
+        <template #content>
+            <sw-card-view>
+                <sw-card v-if="annotationBanner"
+                         position-identifier="annotation-banner-detail">
+                    <sw-container
+                            columns="2fr 1fr"
+                            gap="40px">
+                        {% block annotation_banner_detail_banner_name %}
+                            <mt-text-field
+                                    v-model="annotationBanner.name"
+                                    :label="$tc('annotation_banner.detail.field.name')"
+                                    :placeholder="$tc('annotation_banner.detail.placeholder.name')"
+                                    required
+                                    :error="annotationBannerNameTranslatedError">
+                            </mt-text-field>
+                        {% endblock %}
+
+                        {% block annotation_banner_detail_banner_activation %}
+                            <sw-switch-field
+                                    v-model:value="annotationBanner.active"
+                                    :label="$tc('annotation_banner.detail.field.activation')">
+                            </sw-switch-field>
+                        {% endblock %}
+                    </sw-container>
+
+                    {% block annotation_banner_detail_banner_image %}
+                        <sw-upload-listener
+                                :upload-tag="uploadTag"
+                                auto-upload
+                                @media-upload-finish="setMediaItem">
+                        </sw-upload-listener>
+
+                        <sw-media-upload-v2
+                                variant="regular"
+                                :upload-tag="uploadTag"
+                                :source="BannerMediaItem"
+                                :allow-multi-select="false"
+                                :default-folder="defaultFolderName.entityName"
+                                :label="$tc('annotation_banner.detail.field.bannerImage')"
+                                @media-drop="onDropMedia"
+                                @media-upload-sidebar-open="openMediaSidebar"
+                                @media-upload-remove-image="onUnlinkMedia">
+                        </sw-media-upload-v2>
+                    {% endblock %}               
+                </sw-card>
+
+                {% block annotation_banner_detail_add_product_section_card %}
+                    <sw-card v-if="addProductCard"
+                             v-show="true"
+                             class="annotation-banner-detail-card__add-product"
+                             position-identifier="annotation-banner-detail"
+                             :title="$tc('annotation_banner.general.mainMenuItemGeneral')">
+                        {% block annotation_banner_detail_add_product_section_card %}
+                            <annotation-banner-product
+                                    :bannerImageUrl="BannerMediaItem">
+                            </annotation-banner-product>
+                        {% endblock %}
+                    </sw-card>
+                {% endblock %}
+            </sw-card-view>
+        </template>
+
+        {% block annotation_banner_detail_banner_image_sidebar %}
+            <template #sidebar>
+                <sw-sidebar>
+                    <sw-sidebar-media-item ref="mediaSidebarItem">
+                      {% block annotation_banner_detail_context_menu_media_item_sidebar %}  
+                        <template #context-menu-items="media">
+                            <sw-context-menu-item @click="setMediaFromSidebar(media.mediaItem)">
+                              {{ $tc('annotation_banner.detail.field.bannerImage') }}
+                            </sw-context-menu-item>
+                        </template>
+                      {% endblock %}
+                    </sw-sidebar-media-item>
+                </sw-sidebar>
+            </template>
+        {% endblock %}
+    </sw-page>
+{% endblock %}

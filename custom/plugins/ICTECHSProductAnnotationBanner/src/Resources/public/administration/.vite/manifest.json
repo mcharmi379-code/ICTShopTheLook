@@ -1,0 +1,60 @@
+{
+  "main.js": {
+    "file": "assets/i-c-t-e-c-h-s-product-annotation-banner-CgFQ9HJJ.js",
+    "name": "i-c-t-e-c-h-s-product-annotation-banner",
+    "src": "main.js",
+    "isEntry": true,
+    "dynamicImports": [
+      "module/sw-cms/blocks/annotationBanner/annotationBanner-selection/component/index.js",
+      "module/sw-cms/blocks/annotationBanner/annotationBanner-selection/preview/index.js",
+      "module/sw-cms/elements/annotationBannerSelection/preview/index.js",
+      "module/sw-cms/elements/annotationBannerSelection/config/index.js",
+      "module/sw-cms/elements/annotationBannerSelection/component/index.js"
+    ],
+    "css": [
+      "assets/i-c-t-e-c-h-s-product-annotation-banner-Ck6hm3BQ.css"
+    ]
+  },
+  "module/sw-cms/blocks/annotationBanner/annotationBanner-selection/component/index.js": {
+    "file": "assets/index-hkZZY_V9.js",
+    "name": "index",
+    "src": "module/sw-cms/blocks/annotationBanner/annotationBanner-selection/component/index.js",
+    "isDynamicEntry": true,
+    "css": [
+      "assets/index-iTFwM7bU.css"
+    ]
+  },
+  "module/sw-cms/blocks/annotationBanner/annotationBanner-selection/preview/index.js": {
+    "file": "assets/index-DZbjxBo8.js",
+    "name": "index",
+    "src": "module/sw-cms/blocks/annotationBanner/annotationBanner-selection/preview/index.js",
+    "isDynamicEntry": true,
+    "css": [
+      "assets/index-CGXTUsOi.css"
+    ]
+  },
+  "module/sw-cms/elements/annotationBannerSelection/component/index.js": {
+    "file": "assets/index-BOEUTcwX.js",
+    "name": "index",
+    "src": "module/sw-cms/elements/annotationBannerSelection/component/index.js",
+    "isDynamicEntry": true,
+    "css": [
+      "assets/index-BaSGiAes.css"
+    ]
+  },
+  "module/sw-cms/elements/annotationBannerSelection/config/index.js": {
+    "file": "assets/index-PcTjBv36.js",
+    "name": "index",
+    "src": "module/sw-cms/elements/annotationBannerSelection/config/index.js",
+    "isDynamicEntry": true,
+    "css": [
+      "assets/index-Bz193XgX.css"
+    ]
+  },
+  "module/sw-cms/elements/annotationBannerSelection/preview/index.js": {
+    "file": "assets/index-6PWkOJQC.js",
+    "name": "index",
+    "src": "module/sw-cms/elements/annotationBannerSelection/preview/index.js",
+    "isDynamicEntry": true
+  }
+}

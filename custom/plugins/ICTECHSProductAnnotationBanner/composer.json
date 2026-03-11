@@ -1,0 +1,42 @@
+{
+    "name": "ictechs/product-annotation-banner",
+    "description": "Image and Product Annotation",
+    "type": "shopware-platform-plugin",
+    "version": "2.0.1",
+    "license": "proprietary",
+    "require": {
+        "shopware/core": ">=6.7.0",
+        "shopware/storefront": ">=6.7.0",
+        "shopware/administration": ">=6.7.0"
+    },
+    "extra": {
+        "shopware-plugin-class": "ICTECHSProductAnnotationBanner\\ICTECHSProductAnnotationBanner",
+        "label": {
+            "de-DE": "Bild - und Produktkommentare",
+            "en-GB": "Image and Product Annotation"
+        },
+        "description": {
+            "de-DE": "Bild - und Produktkommentare",
+            "en-GB": "Image and Product Annotation"
+        },
+        "manufacturerLink": {
+            "de-DE": "https://www.icreativetechnologies.com",
+            "en-GB": "https://www.icreativetechnologies.com"
+        },
+        "supportLink": {
+            "de-DE": "https://support.icreativetechnologies.com/",
+            "en-GB": "https://support.icreativetechnologies.com/"
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "ICTECHSProductAnnotationBanner\\": "src/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "symfony/runtime": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    }
+}

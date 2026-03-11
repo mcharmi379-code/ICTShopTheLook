@@ -1,0 +1,26 @@
+{
+  "cms-annotation-banner": {
+    "general": {
+      "mainMenuItemGeneral": "Product Annotation Banner"
+    },
+    "elements": {
+      "annotationBannerSelection": {
+        "config": {
+          "label": {
+            "annotationBanner": "Annotation Banner",
+            "blockLayoutPosition": "Block Layout Position",
+            "fullWidth": "Full Width",
+            "imageWithText": "Image With Text"
+          },
+          "placeholder": {
+            "annotationBanner": "Select Annotation Banner",
+            "blockLayoutPosition": "Select Block Layout Position"
+          },
+          "heading": {
+            "text": "Select Annotation Banner and Layout Position"
+          }
+        }
+      }
+    }
+  }
+}

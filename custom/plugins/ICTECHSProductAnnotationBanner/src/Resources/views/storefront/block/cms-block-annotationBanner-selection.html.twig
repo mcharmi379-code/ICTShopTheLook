@@ -1,0 +1,50 @@
+{% block block_annotationBanner_selection %}
+    {% set element = block.slots.getSlot('annotationBannerSelection') %}
+
+    {% if element.data.empty === false %}
+        {% block block_annotationBanner_selection_banner_available %}
+
+                {% if element.data.LayoutType == 'imageWithText' %}
+                    {% block block_annotationBanner_selection_banner_available_imageWithText %}
+                        <div class="col-6 block-annotationBanner-selection-banner-available-image-with-text"
+                             data-cms-element-id="{{ element.id }}">
+                            {% block block_annotationBanner_imagewithtext_selection_image %}
+                                {% sw_include "@Storefront/storefront/element/cms-element-" ~ element.type ~ ".html.twig" ignore missing %}
+                            {% endblock %}
+                        </div>
+                        <div class="col-6 product-banner-full-width-text-section"
+                             id="product-banner-full-width-text-section"
+                             data-cms-element-id="{{ element.id }}">
+                            {% block block_annotationBanner_selection_text_close_button_icon %}
+                                <div id="product-annotation-cross-sign" class="d-none">
+                                    <button type="submit"
+                                            title="{{ "detail.reviewFormCancelText"|trans|striptags }}"
+                                            annotation-banner-text-content="{{ element.data.content|raw }}"
+                                            class="btn btn-light btn-sm remove-selected-product-view-button"
+                                            id="remove-selected-product-view-button">
+                                        {% sw_icon 'x' style { 'size': 'md' } %}
+                                    </button>
+                                </div>
+                            {% endblock %}
+                            <div id="product-banner-full-width-text-section-click-to-change">
+                                {% block block_annotationBanner_selection_text %}
+                                    {{ element.data.content|raw }}
+                                {% endblock %}
+                            </div>
+                        </div>
+                    {% endblock %}
+                {% endif %}
+
+                {% if element.data.LayoutType == 'fullWidth' %}
+                    {% block block_annotationBanner_selection_banner_available_fullWidth %}
+                        <div class="block-annotationBanner-selection-banner-available-full-width-image"
+                             data-cms-element-id="{{ element.id }}">
+                            {% block block_annotationBanner_fullwidth_selection_image %}
+                                {% sw_include "@Storefront/storefront/element/cms-element-" ~ element.type ~ ".html.twig" ignore missing %}
+                            {% endblock %}
+                        </div>
+                    {% endblock %}
+                {% endif %}
+        {% endblock %}
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,277 @@
+<div class="annotation-banner-product-card">
+    {% block annotation_banner_product_card %}
+        <div class="annotation-banner-product-card-add-button">
+            {# ********** Add Button ********** #}
+            {% block annotation_banner_product_card_add_button %}
+                <sw-button
+                        class="annotation-banner-product-card-add-button--primary"
+                        @click="OpenProductForm()"
+                        variant="primary">
+                    {{ $t('annotation_banner.detail.addProductComponent.addProductButton') }}
+                </sw-button>
+            {% endblock %}
+
+            {# ********** Products for banner table ********** #}
+            {% block annotation_banner_product_list_table %}
+                    {% block annotation_banner_product_list_table_content %}
+                        <div>
+                            <sw-data-grid
+                                    v-if="bundleProductElements"
+                                    class="annotation-banner-product-components-grid"
+                                    :dataSource="bundleArray"
+                                    :isLoading="isLoading"
+                                    :columns="columns"
+                                    :compact-mode="true"
+                                    :show-settings="true"
+                                    :show-selection="false"
+                                    :show-actions="true"
+                                    :allowColumnEdit="false">
+                                {% block annotation_banner_product_list_table_datagrid_update %}
+                                    <template #actions="{ item }">
+                                        <sw-context-menu-item class="annotation-banner-product__update-action"
+                                                              @click="onUpdateItem(item)">
+                                            {{ $tc('annotation_banner.detail.addProductComponent.listTableActions.edit') }}
+                                        </sw-context-menu-item>
+                                        <sw-context-menu-item
+                                                class="annotation-banner-product__delete-action sw-context-menu-item--danger"
+                                                @click="onDeleteItem(item.id)">
+                                            {{ $tc('annotation_banner.detail.addProductComponent.listTableActions.delete') }}
+                                        </sw-context-menu-item>
+                                    </template>
+                                {% endblock %}
+
+                                {% block annotation_banner_product_list_table_datagrid_selected_type_id_name %}
+                                    <template #column-selectType="{ item }">
+                                        <span v-if="item.productId">
+                                            <sw-product-variant-info>
+                                                 {{ $tc('annotation_banner.detail.addProductComponent.listTableField.selectType.product') }}
+                                            </sw-product-variant-info>
+                                        </span>
+                                        <span  v-if="item.categoryId">
+                                            <sw-product-variant-info>
+                                                  {{ $tc('annotation_banner.detail.addProductComponent.listTableField.selectType.category') }}
+                                            </sw-product-variant-info>
+                                        </span>
+                                        <span v-if="item.productManufacturerId">
+                                            <sw-product-variant-info>
+                                                 {{ $tc('annotation_banner.detail.addProductComponent.listTableField.selectType.manufacturer') }}
+                                            </sw-product-variant-info>
+                                        </span>
+                                    </template>
+                                {% endblock %}
+
+                                {% block annotation_banner_product_list_table_datagrid_item_id_name %}
+                                    <template #column-itemName="{ item }">
+                                        <span v-if="item.productId">
+                                            <sw-product-variant-info :variations="item.product.variation">
+                                                {{ item.product.translated.name || item.product.name || variantNames[item.product.id] }}
+                                            </sw-product-variant-info>
+                                        </span>
+                                        <span v-if="item.categoryId">
+                                            <sw-product-variant-info>
+                                                {{ item.category.translated.name }}
+                                            </sw-product-variant-info>
+                                        </span>
+                                        <span v-if="item.productManufacturerId">
+                                            <sw-product-variant-info>
+                                                {{ item.manufacturer.translated.name }}
+                                            </sw-product-variant-info>
+                                        </span>
+                                    </template>
+                                {% endblock %}
+                            </sw-data-grid>
+                        </div>
+                    {% endblock %}
+            {% endblock %}
+
+            {# ********** Add product In Modal ********** #}
+            {% block annotation_banner_product_add_modal %}
+                <sw-modal v-if="openModelForAddProduct"
+                          @modal-close="onCloseButtonModal"
+                          :title="$tc('annotation_banner.detail.addProductComponent.addProductTitle')"
+                          variant="large">
+
+                    {% block annotation_banner_product_add_modal_info %}
+                        <div class="annotation-banner-products-add-modal-info">
+                            {% block annotation_banner_product_add_modal_selectType %}
+                                <sw-select-field-deprecated
+                                        :label="$tc('annotation_banner.detail.addProductComponent.list.optionTypeName')"
+                                        :placeholder="$tc('annotation_banner.detail.addProductComponent.placeholder.optionTypeName')"
+                                        v-model:value="bundleProductElements.selectType"
+                                        @update:value="onChangeSelectType">
+                                    <option value="product">
+                                        {{ $tc('annotation_banner.detail.addProductComponent.list.optionType.product') }}
+                                    </option>
+                                    <option value="category">
+                                        {{ $tc('annotation_banner.detail.addProductComponent.list.optionType.category') }}
+                                    </option>
+                                    <option value="manufacturer">
+                                        {{ $tc('annotation_banner.detail.addProductComponent.list.optionType.manufacture') }}
+                                    </option>
+                                </sw-select-field-deprecated>
+                            {% endblock %}
+
+                            {% block annotation_banner_product_add_modal_productId %}
+                                <sw-entity-single-select
+                                        v-if="bundleProductElements.selectType === 'product'"
+                                        v-model:value="bundleProductElements.productId"
+                                        class="annotation_banner_products_add__product-select"
+                                        :label="$tc('annotation_banner.detail.addProductComponent.list.productSelection')"
+                                        :placeholder="$tc('annotation_banner.detail.addProductComponent.placeholder.productSelection')"
+                                        :helpText="$tc('annotation_banner.detail.addProductComponent.helpText.productSelection')"
+                                        :criteria="productCriteria"
+                                        :display-variants="true"
+                                        entity="product"
+                                        @update:value="onChangeItem"
+                                        show-clearable-button>
+
+                                </sw-entity-single-select>
+                            {% endblock %}
+
+                            {% block annotation_banner_product_add_modal_categoryId %}
+                                <sw-entity-single-select
+                                        v-if="bundleProductElements.selectType === 'category'"
+                                        v-model:value="bundleProductElements.categoryId"
+                                        class="annotation_banner_products_add__category-select"
+                                        :label="$tc('annotation_banner.detail.addProductComponent.list.categorySelection')"
+                                        :placeholder="$tc('annotation_banner.detail.addProductComponent.placeholder.categorySelection')"
+                                        :helpText="$tc('annotation_banner.detail.addProductComponent.helpText.categorySelection')"
+                                        entity="category"
+                                        :criteria="categoryCriteria"
+                                        @update:value="onChangeItem"
+                                        show-clearable-button>
+
+                                </sw-entity-single-select>
+                            {% endblock %}
+
+                            {% block annotation_banner_product_add_modal_manufactureId %}
+                                <sw-entity-single-select
+                                        v-if="bundleProductElements.selectType === 'manufacturer'"
+                                        v-model:value="bundleProductElements.productManufacturerId"
+                                        class="annotation_banner_products_add__manufacturer-select"
+                                        :label="$tc('annotation_banner.detail.addProductComponent.list.manufacturerSelection')"
+                                        :placeholder="$tc('annotation_banner.detail.addProductComponent.placeholder.manufacturerSelection')"
+                                        :helpText="$tc('annotation_banner.detail.addProductComponent.helpText.manufacturerSelection')"
+                                        entity="product_manufacturer"
+                                        @update:value="onChangeItem"
+                                        show-clearable-button>
+
+                                </sw-entity-single-select>
+                            {% endblock %}
+
+                            <sw-container columns="1fr 1fr" gap="100px">
+                                <sw-container columns="1fr" gap="20px">
+                                    <div class="annotation-banner-product-add-modal-xAxis-input-block-head-main-section">
+                                        <div class="annotation-banner-product-add-modal-xAxis-input-block-head-title-section">
+                                            <h1>{{ $t('annotation_banner.detail.verticalDimensionText') }}</h1>
+                                        </div>
+                                        {% block annotation_banner_product_add_modal_xAxis_input_block %}
+                                            <sw-container
+                                                    columns="1fr"
+                                                    gap="20px">
+                                                <input type="range" min="0" max="100" v-model="xAxisPosition">
+                                            </sw-container>
+                                        {% endblock %}
+
+                                        {% block annotation_banner_product_add_modal_xAxis_block %}
+                                            <sw-container
+                                                    columns="1fr"
+                                                    gap="20px">
+                                                {% block annotation_banner_product_add_modal_xAxis %}
+                                                    <mt-number-field
+                                                            v-model:value="xAxisPosition"
+                                                            class="sw-number-field__xAxisPosition"
+                                                            :placeholder="$tc('annotation_banner.detail.addProductComponent.placeholder.xAxis')"
+                                                            :label="$tc('annotation_banner.detail.addProductComponent.list.xAxis')"
+                                                            :helpText="$tc('annotation_banner.detail.addProductComponent.helpText.xAxis')"
+                                                            :min="0"
+                                                            :max="100"
+                                                            @update:value="xAxisPositionInput">
+                                                        <template #suffix>
+                                                            %
+                                                        </template>
+                                                    </mt-number-field>
+                                                {% endblock %}
+                                            </sw-container>
+                                        {% endblock %}
+                                    </div>
+
+                                    <div class="annotation-banner-product-add-modal-yAxis-input-block-head-main-section">
+                                        <div class="annotation-banner-product-add-modal-yAxis-input-block-head-title-section">
+                                            <h1>{{ $t('annotation_banner.detail.horizontalDimensionText') }}</h1>
+                                        </div>
+                                        {% block annotation_banner_product_add_modal_yAxis_input_block %}
+                                            <sw-container
+                                                    columns="1fr"
+                                                    gap="20px">
+                                                <input type="range" min="0" max="100" v-model="yAxisPosition">
+                                            </sw-container>
+                                        {% endblock %}
+
+                                        {% block annotation_banner_product_add_modal_yAxis_block %}
+                                            <sw-container
+                                                    columns="1fr"
+                                                    gap="20px">
+                                                {% block annotation_banner_product_add_modal_yAxis %}
+                                                    <sw-number-field
+                                                            v-model:value="yAxisPosition"
+                                                            class="sw-number-field__xAxisPosition"
+                                                            :placeholder="$tc('annotation_banner.detail.addProductComponent.placeholder.yAxis')"
+                                                            :label="$tc('annotation_banner.detail.addProductComponent.list.yAxis')"
+                                                            :helpText="$tc('annotation_banner.detail.addProductComponent.helpText.yAxis')"
+                                                            :min="0"
+                                                            :max="100"
+                                                            @update:value="yAxisPosition">
+                                                        <template #suffix>
+                                                            %
+                                                        </template>
+                                                    </sw-number-field>
+                                                {% endblock %}
+                                            </sw-container>
+                                        {% endblock %}
+                                    </div>
+                                </sw-container>
+
+                                <sw-container>
+                                    {% block annotation_banner_product_banner_image_preview %}
+                                        <div class="annotation-banner-products-banner-image-preview-container">
+                                            <div class="annotation-banner-products-banner-image-preview">
+                                                <img :src="bannerImageUrl.url">
+                                            </div>
+                                            <div class="previous-selected-points" v-html="htmlAppend">
+                                            </div>
+                                            <div class="annotation-banner-input-type-pointer-preview">
+                                                <span type="radio" class="pointer_slide-on_xy_axis"
+                                                      :style="style"></span>
+                                            </div>
+                                        </div>
+                                    {% endblock %}
+                                </sw-container>
+                            </sw-container>
+                        </div>
+                    {% endblock %}
+
+                    {% block annotation_banner_product_add_modal_footer %}
+                        <template #modal-footer>
+                            {% block annotation_banner_product_add_modal_footer_cancel %}
+                                <mt-button @click="onCloseButtonModal"
+                                           size="small">
+                                    {{ $tc('annotation_banner.detail.addProductComponent.cancel') }}
+                                </mt-button>
+                            {% endblock %}
+                            {% block annotation_banner_product_add_modal_footer_confirm %}
+                                <mt-button :isLoading="isLoading"
+                                           @click="onConfirmBannerProduct"
+                                           size="small"
+                                           variant="primary">
+                                    {{ $tc('annotation_banner.detail.addProductComponent.confirm') }}
+                                </mt-button>
+                            {% endblock %}
+                        </template>
+                    {% endblock %}
+
+                </sw-modal>
+            {% endblock %}
+        </div>
+    {% endblock %}
+</div>

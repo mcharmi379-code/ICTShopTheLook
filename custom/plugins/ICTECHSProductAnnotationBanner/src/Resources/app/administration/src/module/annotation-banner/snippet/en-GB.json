@@ -1,0 +1,108 @@
+{
+  "annotation_banner": {
+    "general": {
+      "title": "Product Annotation Banner",
+      "description": "Product Annotation Banner",
+      "mainMenuItemGeneral": "Product Annotation Banner"
+    },
+    "list": {
+      "create": "Create Annotation Banner",
+      "columnName": {
+        "name": "Banner Name",
+        "bannerImage": "Banner Image"
+      }
+    },
+    "detail": {
+      "cancelButton": "Cancel",
+      "saveButton": "Save",
+      "verticalDimensionText": "Set Vertical Dimension",
+      "horizontalDimensionText": "Set Horizontal Dimension",
+      "field": {
+        "name": "Name",
+        "activation": "Activation",
+        "bannerImage": "Banner Image"
+      },
+      "placeholder": {
+        "name": "Enter Technical Name"
+      },
+      "addProductComponent": {
+        "addProductButton": "Add",
+        "cancel": "Cancel",
+        "confirm": "Save",
+        "error": {
+          "title": "Error",
+          "message": "something went wrong, Please check all entries."
+        },
+        "success": {
+          "title": "Success",
+          "message": "Data Saved Successfully",
+          "deleteMessage": "Data Deleted Successfully"
+        },
+        "addProductTitle": "Add Product",
+        "listTableActions": {
+          "edit": "Edit",
+          "delete": "Delete"
+        },
+        "listTableField": {
+          "selectType": {
+            "product": "Product",
+            "category": "Category",
+            "manufacturer": "Manufacturer"
+          }
+        },
+        "list": {
+          "optionTypeName": "Select Type",
+          "productSelection": "Select Product",
+          "categorySelection": "Select Category",
+          "manufacturerSelection": "Select Manufacturer",
+          "type": "Type",
+          "item": "Item",
+          "xAxis": "X-Axis",
+          "yAxis": "Y-Axis",
+          "optionType": {
+            "product": "Product",
+            "category": "Category",
+            "manufacture": "Manufacturer"
+          }
+        },
+        "placeholder": {
+          "optionTypeName": "Select Type",
+          "productSelection": "Select Single Product",
+          "categorySelection": "Select Single Category",
+          "manufacturerSelection": "Select Single Manufacturer",
+          "xAxis": "Enter XAxis",
+          "yAxis": "Enter YAxis"
+        },
+        "helpText": {
+          "productSelection": "Select single product here",
+          "categorySelection": "Select single category here",
+          "manufacturerSelection": "Select single manufacturer here",
+          "xAxis": "Enter integer value only",
+          "yAxis": "Enter integer value only"
+        }
+      }
+    },
+    "success": {
+        "title": "Success",
+        "message": "Data Saved Successfully."
+    },    
+    "error": {
+      "title": "Error",
+      "title_cache": "Cache Error",
+      "message_cache": "An error occurred while clearing the cache.",
+      "message": "Required Field should not be empty",
+      "productRequired": "Product Field should not be empty",
+      "categoryRequired": "Category Field should not be empty",
+      "manufactureRequired": "Manufacture Field should not be empty",
+      "notBlank": "This field should not be blank",
+      "xAxisPosition": {
+        "title": "Error",
+        "message": "xAxisPosition Field should not be empty"
+      },
+      "yAxisPosition": {
+        "title": "Error",
+        "message": "yAxisPosition Field should not be empty"
+      }
+    }
+  }
+}

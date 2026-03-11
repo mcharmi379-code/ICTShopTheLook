@@ -1,0 +1,108 @@
+{% block element_image %}
+    {% set configAnnotationbannerUrl = element.data.annotationBannerUrl %}
+    
+    <div class="cms-element-annotation_banner_selection_image position-relative" hover-on-radio-button>
+        <div class="cms-element-annotation_banner_selection_image-pointer-preview">
+
+            {% for productValue in element.data.productShowOnProductBanner %}
+                <div id="dummyImage" class="d-none">
+                    {% sw_icon 'placeholder' style {
+                        'size': 'fluid'
+                    } %}
+                </div>
+
+                {% if productValue.productId is not null %}
+
+                    {# Product Radio button and tooltip#}
+                    <div class="cms-element-annotation_banner_selection_image-pointer-preview-button {% if(element.data.LayoutType == 'fullWidth') %}tooltip-hover {% endif %}"
+                         style="left: {{ productValue['xAxis'] }}%; top: {{ productValue['yAxis'] }}%; transform: translate(-{{ productValue['xAxis'] }}%,-{{ productValue['yAxis'] }}%);">
+                        {% set productDetailsButtonTitle = "general.cmsElement.detailButton"|trans %}
+                        {% set productValue = productValue|merge({'productDetailPageUrl': seoUrl('frontend.detail.page', { 'productId': productValue.productId })}, {'productDetailButtonTitle': productDetailsButtonTitle}, {'salesChannelCurrency': element.data.salesChannelCurrency}, {'LayoutType': element.data.LayoutType}) %}
+
+                        <input aria-label="{{ productValue['id'] }}" type="radio" id="{{ productValue['id'] }}" name="ProductRadioButton"
+                               value="{{ productValue|json_encode }}"
+                        />
+                        <label for="{{ productValue['id'] }}" class="custom-radio-text"><span class="custom-radio-input"></span></label>
+                        <a href="{{ seoUrl('frontend.detail.page', { 'productId': productValue.productId }) }}" aria-label="Product">
+                            {% if(element.data.LayoutType == 'fullWidth') %}
+                                <div class="tooltiptext" style="{% if(productValue.xAxis > 50)%} right:20px; {% else %} left:20px; {% endif %} {% if(productValue.yAxis > 50)%} bottom:20px; {% else %} top:20px; {% endif %} ">
+                                    <div class="product-title">{{ productValue.productName }}</div>
+                                    <div class="product-price"><span>{{ element.data.salesChannelCurrency }}</span> {{ productValue.productPrice }}</div>
+                                </div>
+                            {% endif %}
+                        </a>
+                    </div>
+                {% elseif(productValue.categoryId is not null) %}
+                    {# Category Radio button and tooltip#}
+                    <div class="cms-element-annotation_banner_selection_image-pointer-preview-button {%  if(element.data.LayoutType == 'fullWidth') %}tooltip-hover {% endif %}"
+                         style="left: {{ productValue['xAxis'] }}%; top: {{ productValue['yAxis'] }}%; transform: translate(-{{ productValue['xAxis'] }}%,-{{ productValue['yAxis'] }}%)">
+                        {% set productDetailsButtonTitle = "general.cmsElement.detailButton"|trans %}
+                        {% set productValue = productValue|merge({'categoryDetailPageUrl': category_url(productValue['category'])},{'category': productValue['category']},{'productDetailButtonTitle': productDetailsButtonTitle},{'productDetailButtonTitle': productDetailsButtonTitle}, {'LayoutType': element.data.LayoutType}) %}
+                        <input aria-label="{{ productValue['id'] }}"  type="radio" id="{{ productValue['id'] }}" name="ProductRadioButton"
+                               value="{{ productValue|json_encode }}"
+                        />
+                        <label for="{{ productValue['id'] }}" class="custom-radio-text"><span class="custom-radio-input"></span></label>
+
+                         {% if(element.data.LayoutType == 'fullWidth') %}
+                            <a href="{{ category_url(productValue['category']) }}" aria-label="Category">
+
+                                <div class="tooltiptext"  style="{% if(productValue.xAxis > 50)%} right:20px; {% else %} left:20px; {% endif %} {% if(productValue.yAxis > 50)%} bottom:20px; {% else %} top:25px; {% endif %} ">
+                                    <div class="category-title">{{ productValue.categoryName }}</div>
+                                    <p class="category-description">{{ productValue.category.translated.description | raw }}</p>
+                                </div>
+                            </a>
+                        {% endif %}
+                    </div>
+                {% elseif(productValue.manufacturer is not null) %}
+                    {# Manufacturer Radio button and tooltip#}
+                    {% set productDescriptionButtonTitle = "component.product.feature.label.description"|trans %}
+                    <div {% if(element.data.LayoutType == 'fullWidth') %} id="{{ productValue['id'] }}" data-bs-toggle="modal" data-bs-target="#bundleMainProductModal" {% endif%} class="cms-element-annotation_banner_selection_image-pointer-preview-button {% if(element.data.LayoutType == 'fullWidth') %}tooltip-hover {% endif %}"
+                         style="left: {{ productValue['xAxis'] }}%; top: {{ productValue['yAxis'] }}%; transform: translate(-{{ productValue['xAxis'] }}%,-{{ productValue['yAxis'] }}%)">
+                        {% set productDetailsButtonTitle = "general.cmsElement.detailButton"|trans %}
+
+                        {% set productValue = productValue|merge({'manufacturer': productValue['manufacturer']},{'productDetailButtonTitle': productDetailsButtonTitle},{'productDescriptionButtonTitle': productDescriptionButtonTitle}, {'LayoutType': element.data.LayoutType}) %}
+                        <input aria-label="{{ productValue['id'] }}" type="radio" id="{{ productValue['id'] }}"  name="ProductRadioButton" class="customRadioButton"
+                               value="{{ productValue|json_encode }}"
+                        />
+                        <label for="{{ productValue['id'] }}" class="custom-radio-text"><span class="custom-radio-input"></span></label>
+                        {% if(element.data.LayoutType == 'fullWidth') %}
+                                <div class="tooltiptext tooltiptext-manufacturer" style="{% if(productValue.xAxis > 50)%} right:20px; {% else %} left:20px; {% endif %} {% if(productValue.yAxis > 50)%} bottom:20px; {% else %} top:20px; {% endif %} ">
+                                    <div class="category-title">{{ productValue.manufacturer.translated['name'] }}</div>
+                                </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <div class="cms-element-image">
+            <div class="cms-image-container">
+                <img src="{{ configAnnotationbannerUrl }}" alt="{{ "general.cmsElement.altImage"|trans }}" class="cms-image" loading="lazy"
+                     data-object-fit="contain">
+            </div>
+        </div>
+    </div>
+
+{#   manufacturer modal#}
+    <div class="modal fade"
+         id="bundleMainProductModal"
+         data-backdrop="static"
+         tabindex="-1"
+         role="dialog"
+         aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button class="btn-close"
+                            type="button"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+                    </button>
+                </div>
+               <div id="manufacturer-details"></div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+
