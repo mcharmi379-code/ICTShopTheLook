@@ -113,7 +113,16 @@
                                                                         class="variant-radio"
                                                                         data-group="{{ groupName|lower }}"
                                                                         data-product-id="{{ hotspot.product.id }}"
-                                                                        {% if hotspot.product.options %}
+                                                                        data-option-id="{{ option.id }}"
+                                                                        data-option-name="{{ option.name }}"
+                                                                        {% if hotspot.product.children and hotspot.product.children|length > 0 %}
+                                                                            {% set defaultChild = hotspot.product.children.first %}
+                                                                            {% if defaultChild.options %}
+                                                                                {% for childOption in defaultChild.options %}
+                                                                                    {% if childOption.id == option.id %}checked{% endif %}
+                                                                                {% endfor %}
+                                                                            {% endif %}
+                                                                        {% elseif hotspot.product.options %}
                                                                             {% for productOption in hotspot.product.options %}
                                                                                 {% if productOption.id == option.id %}checked{% endif %}
                                                                             {% endfor %}
@@ -153,13 +162,15 @@
                                                                         <input 
                                                                             type="radio" 
                                                                             name="{{ groupName|lower }}-{{ hotspot.product.id }}" 
-                                                                            id="{{ groupName|lower }}-{{ option.id }}"
+                                                                            id="{{ groupName|lower }}-{{ option.id }}-{{ hotspot.product.id }}"
                                                                             value="{{ option.id }}"
                                                                             class="variant-radio"
                                                                             data-group="{{ groupName|lower }}"
+                                                                            data-product-id="{{ hotspot.product.id }}"
+                                                                            data-option-id="{{ option.id }}"
                                                                             checked
                                                                         />
-                                                                        <label for="{{ groupName|lower }}-{{ option.id }}" class="variant-label-option">
+                                                                        <label for="{{ groupName|lower }}-{{ option.id }}-{{ hotspot.product.id }}" class="variant-label-option">
                                                                             {% if groupName|lower == 'color' or groupName|lower == 'colour' %}
                                                                                 <span class="color-swatch" style="background-color: {{ option.colorHexCode ?? '#ccc' }};"></span>
                                                                             {% endif %}
@@ -205,13 +216,15 @@
                                                                             <input 
                                                                                 type="radio" 
                                                                                 name="property-{{ groupName|lower }}-{{ hotspot.product.id }}" 
-                                                                                id="property-{{ property.id }}"
+                                                                                id="property-{{ property.id }}-{{ hotspot.product.id }}"
                                                                                 value="{{ property.id }}"
                                                                                 class="variant-radio"
                                                                                 data-group="{{ groupName|lower }}"
+                                                                                data-product-id="{{ hotspot.product.id }}"
+                                                                                data-option-id="{{ property.id }}"
                                                                                 {% if loop.first %}checked{% endif %}
                                                                             />
-                                                                            <label for="property-{{ property.id }}" class="variant-label-option">
+                                                                            <label for="property-{{ property.id }}-{{ hotspot.product.id }}" class="variant-label-option">
                                                                                 {{ property.translated.name }}
                                                                             </label>
                                                                         </div>
@@ -235,15 +248,84 @@
                                 <!-- Individual Add to Cart -->
                                 {% if config.addSingleProduct %}
                                     <div class="individual-add-to-cart">
-                                        <form action="{{ path('frontend.checkout.line-item.add') }}" method="post" class="add-to-cart-form">
-                                            <input type="hidden" name="lineItems[{{ hotspot.product.id }}][id]" value="{{ hotspot.product.id }}">
-                                            <input type="hidden" name="lineItems[{{ hotspot.product.id }}][type]" value="product">
-                                            <input type="hidden" name="lineItems[{{ hotspot.product.id }}][referencedId]" value="{{ hotspot.product.id }}">
-                                            <input type="hidden" name="lineItems[{{ hotspot.product.id }}][quantity]" value="1">
-                                            <input type="hidden" name="lineItems[{{ hotspot.product.id }}][stackable]" value="1">
-                                            <input type="hidden" name="lineItems[{{ hotspot.product.id }}][removable]" value="1">
+                                        <form action="{{ path('frontend.checkout.line-item.add') }}" method="post" class="add-to-cart-form" data-add-to-cart="true">
+                                            <!-- Debug: Show product info -->
+                                            <div class="debug-info" style="background: #f0f0f0; padding: 10px; margin: 10px 0; font-size: 11px; border-radius: 4px;">
+                                                <strong>Debug Info:</strong><br>
+                                                Original Product ID: {{ hotspot.product.id }}<br>
+                                                Product Name: {{ hotspot.product.translated.name }}<br>
+                                                Product Type: {{ hotspot.product.type ?? 'undefined' }}<br>
+                                                Has Parent: {{ hotspot.product.parentId ? 'Yes (' ~ hotspot.product.parentId ~ ')' : 'No' }}<br>
+                                                Child Count: {{ hotspot.product.childCount ?? 0 }}<br>
+                                                Available: {{ hotspot.product.available ? 'Yes' : 'No' }}<br>
+                                                {% set productToAdd = hotspot.product %}
+                                                {% if hotspot.product.childCount > 0 and hotspot.product.children and hotspot.product.children|length > 0 %}
+                                                    {% set productToAdd = hotspot.product.children.first %}
+                                                    <strong style="color: red;">Using Child Variant ID: {{ productToAdd.id }}</strong><br>
+                                                    Child Variant Name: {{ productToAdd.translated.name }}<br>
+                                                {% else %}
+                                                    <strong style="color: green;">Using Original Product ID: {{ productToAdd.id }}</strong><br>
+                                                {% endif %}
+                                                {% if hotspot.product.options %}
+                                                    Current Options: 
+                                                    {% for option in hotspot.product.options %}
+                                                        {{ option.group.name }}: {{ option.name }}{% if not loop.last %}, {% endif %}
+                                                    {% endfor %}<br>
+                                                {% endif %}
+                                                {% if hotspot.allVariants %}
+                                                    All Variants: {{ hotspot.allVariants|keys|join(', ') }}<br>
+                                                {% endif %}
+                                            </div>
                                             
-                                            <button type="submit" class="btn btn-outline-primary add-single-to-cart" data-product-id="{{ hotspot.product.id }}">
+                                            <!-- Store variant mapping data for JavaScript -->
+                                            {% if hotspot.product.children and hotspot.product.children|length > 0 %}
+                                                <script type="application/json" class="variant-data" data-product-id="{{ hotspot.product.id }}">
+                                                {
+                                                    "parentId": "{{ hotspot.product.id }}",
+                                                    "variants": [
+                                                        {% for child in hotspot.product.children %}
+                                                        {
+                                                            "id": "{{ child.id }}",
+                                                            "name": "{{ child.translated.name }}",
+                                                            "options": [
+                                                                {% if child.options %}
+                                                                    {% for option in child.options %}
+                                                                        "{{ option.id }}"{% if not loop.last %},{% endif %}
+                                                                    {% endfor %}
+                                                                {% endif %}
+                                                            ]
+                                                        }{% if not loop.last %},{% endif %}
+                                                        {% endfor %}
+                                                    ]
+                                                }
+                                                </script>
+                                            {% endif %}
+                                            
+                                            <!-- For products with variants, we need to add the specific variant ID, not the parent -->
+                                            {% set productToAdd = hotspot.product %}
+                                            {% if hotspot.product.childCount > 0 and hotspot.product.children and hotspot.product.children|length > 0 %}
+                                                {% set productToAdd = hotspot.product.children.first %}
+                                            {% endif %}
+                                            
+                                            <input type="hidden" name="lineItems[{{ productToAdd.id }}][id]" value="{{ productToAdd.id }}">
+                                            <input type="hidden" name="lineItems[{{ productToAdd.id }}][type]" value="product">
+                                            <input type="hidden" name="lineItems[{{ productToAdd.id }}][referencedId]" value="{{ productToAdd.id }}">
+                                            <input type="hidden" name="lineItems[{{ productToAdd.id }}][quantity]" value="1">
+                                            <input type="hidden" name="lineItems[{{ productToAdd.id }}][stackable]" value="1">
+                                            <input type="hidden" name="lineItems[{{ productToAdd.id }}][removable]" value="1">
+                                            
+                                            <!-- Add current product options as default -->
+                                            {% if productToAdd.options %}
+                                                {% for option in productToAdd.options %}
+                                                    <input type="hidden" name="lineItems[{{ productToAdd.id }}][payload][options][{{ option.id }}]" value="{{ option.id }}" class="default-option">
+                                                {% endfor %}
+                                            {% endif %}
+                                            
+                                            <!-- Redirect parameters to stay on same page -->
+                                            <input type="hidden" name="redirectTo" value="frontend.cms.page">
+                                            <input type="hidden" name="redirectParameters" value='{{ {"id": page.cmsPage.id}|json_encode }}'>
+                                            
+                                            <button type="submit" class="btn btn-outline-primary add-single-to-cart" data-product-id="{{ hotspot.product.id }}" onclick="debugFormData(this)">
                                                 Add to Cart
                                             </button>
                                         </form>
@@ -257,17 +339,28 @@
                     <!-- Add All to Cart Button -->
                     {% if config.addAllToCart and hotspots|length > 1 %}
                         <div class="add-all-section">
-                            <form action="{{ path('frontend.checkout.line-item.add') }}" method="post" class="add-all-form">
+                            <form action="{{ path('frontend.checkout.line-item.add') }}" method="post" class="add-all-form" data-add-to-cart="true">
                                 {% for hotspot in hotspots %}
-                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][id]" value="{{ hotspot.product.id }}">
-                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][type]" value="product">
-                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][referencedId]" value="{{ hotspot.product.id }}">
-                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][quantity]" value="1">
-                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][stackable]" value="1">
-                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][removable]" value="1">
+                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][id]" value="{{ hotspot.product.id }}" class="product-line-item" data-product-id="{{ hotspot.product.id }}">
+                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][type]" value="product" class="product-line-item" data-product-id="{{ hotspot.product.id }}">
+                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][referencedId]" value="{{ hotspot.product.id }}" class="product-line-item" data-product-id="{{ hotspot.product.id }}">
+                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][quantity]" value="1" class="product-line-item" data-product-id="{{ hotspot.product.id }}">
+                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][stackable]" value="1" class="product-line-item" data-product-id="{{ hotspot.product.id }}">
+                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][removable]" value="1" class="product-line-item" data-product-id="{{ hotspot.product.id }}">
+                                    
+                                    <!-- Add default options for each product -->
+                                    {% if hotspot.product.options %}
+                                        {% for option in hotspot.product.options %}
+                                            <input type="hidden" name="lineItems[{{ hotspot.product.id }}][payload][options][{{ option.id }}]" value="{{ option.id }}" class="product-line-item default-option" data-product-id="{{ hotspot.product.id }}">
+                                        {% endfor %}
+                                    {% endif %}
                                 {% endfor %}
                                 
-                                <button type="submit" class="btn btn-primary btn-lg add-all-to-cart">
+                                <!-- Redirect parameters to stay on same page -->
+                                <input type="hidden" name="redirectTo" value="frontend.cms.page">
+                                <input type="hidden" name="redirectParameters" value='{{ {"id": page.cmsPage.id}|json_encode }}'>
+                                
+                                <button type="submit" class="btn btn-primary btn-lg add-all-to-cart" onclick="debugFormData(this)">
                                     ADD TO CART
                                 </button>
                             </form>
@@ -512,6 +605,27 @@
 
 {% block element_ict_shop_the_look_scripts %}
     <script>
+        // Debug function to show form data before submission
+        function debugFormData(button) {
+            const form = button.closest('form');
+            const formData = new FormData(form);
+            
+            console.log('=== FORM DEBUG INFO ===');
+            console.log('Form action:', form.action);
+            console.log('Form method:', form.method);
+            console.log('Form data:');
+            
+            for (let [key, value] of formData.entries()) {
+                console.log(`  ${key}: ${value}`);
+            }
+            
+            console.log('All form inputs:');
+            form.querySelectorAll('input').forEach(input => {
+                console.log(`  ${input.name}: ${input.value} (disabled: ${input.disabled})`);
+            });
+            console.log('=== END DEBUG INFO ===');
+        }
+        
         document.addEventListener('DOMContentLoaded', function() {
             
             // Product checkbox functionality
@@ -554,23 +668,101 @@
             document.querySelectorAll('.variant-radio').forEach(radio => {
                 radio.addEventListener('change', function() {
                     const productId = this.dataset.productId;
-                    const group = this.dataset.group;
-                    const optionId = this.value;
                     const form = this.closest('.product-item').querySelector('.add-to-cart-form');
                     
-                    if (form) {
-                        // Remove existing option inputs for this group
-                        form.querySelectorAll(`input[name*="[options][${group}]"]`).forEach(input => input.remove());
+                    if (!productId || !form) {
+                        console.error('Missing productId or form');
+                        return;
+                    }
+                    
+                    // Get variant data for this product
+                    const variantDataScript = document.querySelector(`.variant-data[data-product-id="${productId}"]`);
+                    
+                    if (variantDataScript) {
+                        // This product has variants - find the correct one
+                        const variantData = JSON.parse(variantDataScript.textContent);
+                        const productItem = this.closest('.product-item');
+                        const selectedOptions = [];
                         
-                        // Add new option input
-                        const optionInput = document.createElement('input');
-                        optionInput.type = 'hidden';
-                        optionInput.name = `lineItems[${productId}][payload][options][${optionId}]`;
-                        optionInput.value = optionId;
-                        form.appendChild(optionInput);
+                        // Collect all selected options
+                        productItem.querySelectorAll('.variant-radio:checked').forEach(selectedRadio => {
+                            selectedOptions.push(selectedRadio.value);
+                        });
+                        
+                        console.log('Selected options:', selectedOptions);
+                        
+                        // Find the variant that matches all selected options
+                        let matchingVariant = null;
+                        for (const variant of variantData.variants) {
+                            // Check if this variant has all the selected options
+                            const hasAllOptions = selectedOptions.every(optionId => 
+                                variant.options.includes(optionId)
+                            );
+                            
+                            if (hasAllOptions && variant.options.length === selectedOptions.length) {
+                                matchingVariant = variant;
+                                break;
+                            }
+                        }
+                        
+                        if (matchingVariant) {
+                            console.log('Found matching variant:', matchingVariant);
+                            
+                            // Update form to use the correct variant ID
+                            updateFormForVariant(form, matchingVariant.id, selectedOptions);
+                        } else {
+                            console.error('No matching variant found for options:', selectedOptions);
+                            // Fallback to first variant
+                            if (variantData.variants.length > 0) {
+                                updateFormForVariant(form, variantData.variants[0].id, selectedOptions);
+                            }
+                        }
+                    } else {
+                        // This product doesn't have variants - just update options
+                        const selectedOptions = [];
+                        const productItem = this.closest('.product-item');
+                        productItem.querySelectorAll('.variant-radio:checked').forEach(selectedRadio => {
+                            selectedOptions.push(selectedRadio.value);
+                        });
+                        
+                        updateFormForVariant(form, productId, selectedOptions);
                     }
                 });
             });
+            
+            function updateFormForVariant(form, variantId, selectedOptions) {
+                console.log('Updating form for variant:', variantId, 'with options:', selectedOptions);
+                
+                // Update all form inputs to use the correct variant ID
+                form.querySelectorAll('input[name*="lineItems["]').forEach(input => {
+                    const name = input.name;
+                    // Replace the product ID in the input name
+                    const newName = name.replace(/lineItems\[[^\]]+\]/, `lineItems[${variantId}]`);
+                    input.name = newName;
+                    
+                    // Update value for id and referencedId inputs
+                    if (name.includes('[id]') || name.includes('[referencedId]')) {
+                        input.value = variantId;
+                    }
+                });
+                
+                // Remove existing variant option inputs
+                form.querySelectorAll('input.variant-option, input.default-option').forEach(input => {
+                    input.remove();
+                });
+                
+                // Add new option inputs for selected variants
+                selectedOptions.forEach(optionId => {
+                    const optionInput = document.createElement('input');
+                    optionInput.type = 'hidden';
+                    optionInput.name = `lineItems[${variantId}][payload][options][${optionId}]`;
+                    optionInput.value = optionId;
+                    optionInput.classList.add('variant-option');
+                    form.appendChild(optionInput);
+                });
+                
+                console.log('Form updated successfully');
+            }
             
             function updateAddAllButton() {
                 const checkedProducts = document.querySelectorAll('.product-select-checkbox:checked').length;
@@ -585,25 +777,41 @@
                         addAllButton.disabled = false;
                         addAllButton.textContent = `ADD ${checkedProducts} TO CART`;
                         
-                        // Update form to only include checked products
+                        // Disable inputs for unchecked products
                         const uncheckedProducts = document.querySelectorAll('.product-select-checkbox:not(:checked)');
                         uncheckedProducts.forEach(checkbox => {
                             const productId = checkbox.dataset.productId;
-                            addAllForm.querySelectorAll(`input[name*="[${productId}]"]`).forEach(input => {
+                            addAllForm.querySelectorAll(`.product-line-item[data-product-id="${productId}"]`).forEach(input => {
                                 input.disabled = true;
                             });
                         });
                         
+                        // Enable inputs for checked products
                         const checkedProductsInputs = document.querySelectorAll('.product-select-checkbox:checked');
                         checkedProductsInputs.forEach(checkbox => {
                             const productId = checkbox.dataset.productId;
-                            addAllForm.querySelectorAll(`input[name*="[${productId}]"]`).forEach(input => {
+                            addAllForm.querySelectorAll(`.product-line-item[data-product-id="${productId}"]`).forEach(input => {
                                 input.disabled = false;
                             });
                         });
                     }
                 }
             }
+            
+            // Initialize forms with correct variant data on page load
+            document.querySelectorAll('.product-item').forEach(productItem => {
+                const form = productItem.querySelector('.add-to-cart-form');
+                const productId = productItem.dataset.productId;
+                
+                if (form && productId) {
+                    // Trigger variant selection for initially checked options
+                    const checkedRadios = productItem.querySelectorAll('.variant-radio:checked');
+                    if (checkedRadios.length > 0) {
+                        // Trigger change event on first checked radio to initialize form
+                        checkedRadios[0].dispatchEvent(new Event('change'));
+                    }
+                }
+            });
             
             // Initialize
             updateAddAllButton();

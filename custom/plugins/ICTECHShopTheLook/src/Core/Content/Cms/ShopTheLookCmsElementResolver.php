@@ -57,11 +57,10 @@ class ShopTheLookCmsElementResolver extends AbstractCmsElementResolver
         $criteria->addAssociation('options.group');
         $criteria->addAssociation('properties');
         $criteria->addAssociation('properties.group');
-        $criteria->addAssociation('children');
-        $criteria->addAssociation('children.options');
-        $criteria->addAssociation('children.options.group');
         $criteria->addAssociation('children.cover');
         $criteria->addAssociation('children.prices');
+        $criteria->addAssociation('children.options');
+        $criteria->addAssociation('children.options.group');
         $criteria->addAssociation('configuratorGroupConfig');
         $criteria->addAssociation('configuratorSettings');
         $criteria->addAssociation('configuratorSettings.option');
