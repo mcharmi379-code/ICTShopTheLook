@@ -3,6 +3,11 @@
     {% set lookImage = config.lookImage %}
     {% set hotspots = config.hotspots %}
     {% set layoutStyle = config.layoutStyle %}
+
+    {{dump("Config Data:", config)}}
+    {{dump("Look Image:", lookImage)}}
+    {{dump("Hotspots:", hotspots)}}
+    {{dump("Layout Style:", layoutStyle)}}
     <div class="cms-element-ict-shop-the-look">
         <div class="shop-the-look-container">
             
@@ -274,6 +279,11 @@
                                                 {% endif %}
                                                 {% if hotspot.allVariants %}
                                                     All Variants: {{ hotspot.allVariants|keys|join(', ') }}<br>
+                                                    {% for groupName, options in hotspot.allVariants %}
+                                                        {{ groupName }}: {% for optionId, option in options %}{{ option.name }}{% if not loop.last %}, {% endif %}{% endfor %}<br>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    <span style="color: red;">No allVariants data found!</span><br>
                                                 {% endif %}
                                             </div>
                                             

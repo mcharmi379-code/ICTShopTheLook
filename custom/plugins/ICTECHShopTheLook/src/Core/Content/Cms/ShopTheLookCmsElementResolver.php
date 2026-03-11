@@ -125,83 +125,109 @@ class ShopTheLookCmsElementResolver extends AbstractCmsElementResolver
     
     private function loadAllVariantsForProduct(string $productId, ResolverContext $resolverContext): array
     {
-        // First, check if this product has variants (children)
-        $childrenCriteria = new Criteria();
-        $childrenCriteria->addFilter(new EqualsAnyFilter('parentId', [$productId]));
-        $childrenCriteria->addAssociation('options');
-        $childrenCriteria->addAssociation('options.group');
-        $childrenCriteria->addAssociation('cover');
-        
-        // Also get the main product to check if it's a variant itself
-        $mainProductCriteria = new Criteria([$productId]);
-        $mainProductCriteria->addAssociation('options');
-        $mainProductCriteria->addAssociation('options.group');
-        $mainProductCriteria->addAssociation('properties');
-        $mainProductCriteria->addAssociation('properties.group');
-        $mainProductCriteria->addAssociation('parent');
+        $allOptions = [];
         
         try {
-            $children = $this->productRepository->search($childrenCriteria, $resolverContext->getSalesChannelContext());
+            // First, get the main product to understand its structure
+            $mainProductCriteria = new Criteria([$productId]);
+            $mainProductCriteria->addAssociation('options');
+            $mainProductCriteria->addAssociation('options.group');
+            $mainProductCriteria->addAssociation('properties');
+            $mainProductCriteria->addAssociation('properties.group');
+            $mainProductCriteria->addAssociation('children');
+            $mainProductCriteria->addAssociation('parent');
+            
             $mainProduct = $this->productRepository->search($mainProductCriteria, $resolverContext->getSalesChannelContext())->first();
             
-            $allOptions = [];
+            if (!$mainProduct) {
+                return [];
+            }
+            
+            // Determine the parent product ID
+            $parentProductId = $mainProduct->getParentId() ?? $mainProduct->getId();
+            
+            // Load ALL variants of the parent product (including the main product if it's a parent)
+            $variantsCriteria = new Criteria();
             
             // If this product is a variant (has parent), get all siblings
-            if ($mainProduct && $mainProduct->getParentId()) {
-                $siblingsCriteria = new Criteria();
-                $siblingsCriteria->addFilter(new EqualsAnyFilter('parentId', [$mainProduct->getParentId()]));
-                $siblingsCriteria->addAssociation('options');
-                $siblingsCriteria->addAssociation('options.group');
-                
-                $siblings = $this->productRepository->search($siblingsCriteria, $resolverContext->getSalesChannelContext());
-                
-                foreach ($siblings as $sibling) {
-                    if ($sibling->getOptions()) {
-                        foreach ($sibling->getOptions() as $option) {
-                            $groupName = $option->getGroup()->getName();
-                            if (!isset($allOptions[$groupName])) {
-                                $allOptions[$groupName] = [];
-                            }
-                            $allOptions[$groupName][$option->getId()] = $option;
-                        }
-                    }
-                }
+            if ($mainProduct->getParentId()) {
+                $variantsCriteria->addFilter(new EqualsAnyFilter('parentId', [$mainProduct->getParentId()]));
+            } 
+            // If this product is a parent (has children), get all children
+            elseif ($mainProduct->getChildCount() > 0) {
+                $variantsCriteria->addFilter(new EqualsAnyFilter('parentId', [$mainProduct->getId()]));
             }
-            // If this product has children (variants), collect their options
-            elseif ($children->count() > 0) {
-                foreach ($children as $child) {
-                    if ($child->getOptions()) {
-                        foreach ($child->getOptions() as $option) {
-                            $groupName = $option->getGroup()->getName();
-                            if (!isset($allOptions[$groupName])) {
-                                $allOptions[$groupName] = [];
-                            }
-                            $allOptions[$groupName][$option->getId()] = $option;
-                        }
-                    }
-                }
-            }
-            // If no variants found, use main product options and properties
+            // If it's a simple product, just use its own data
             else {
-                // Get options from main product
-                if ($mainProduct && $mainProduct->getOptions()) {
-                    foreach ($mainProduct->getOptions() as $option) {
-                        $groupName = $option->getGroup()->getName();
-                        if (!isset($allOptions[$groupName])) {
-                            $allOptions[$groupName] = [];
+                $variantsCriteria = new Criteria([$productId]);
+            }
+            
+            $variantsCriteria->addAssociation('options');
+            $variantsCriteria->addAssociation('options.group');
+            $variantsCriteria->addAssociation('properties');
+            $variantsCriteria->addAssociation('properties.group');
+            $variantsCriteria->addAssociation('cover');
+            
+            $variants = $this->productRepository->search($variantsCriteria, $resolverContext->getSalesChannelContext());
+            
+            // Collect options from ALL variants
+            foreach ($variants as $variant) {
+                // Get variant options (like color, size from variants)
+                if ($variant->getOptions()) {
+                    foreach ($variant->getOptions() as $option) {
+                        $group = $option->getGroup();
+                        if ($group) {
+                            $groupName = $group->getName();
+                            if (!isset($allOptions[$groupName])) {
+                                $allOptions[$groupName] = [];
+                            }
+                            $allOptions[$groupName][$option->getId()] = $option;
                         }
-                        $allOptions[$groupName][$option->getId()] = $option;
                     }
                 }
                 
-                // Get properties from main product (for products without variants)
-                if ($mainProduct && $mainProduct->getProperties()) {
-                    foreach ($mainProduct->getProperties() as $property) {
-                        $groupName = $property->getGroup()->getName();
-                        if (!isset($allOptions[$groupName])) {
-                            $allOptions[$groupName] = [];
+                // Get properties (for products without variants but with properties)
+                if ($variant->getProperties()) {
+                    foreach ($variant->getProperties() as $property) {
+                        $group = $property->getGroup();
+                        if ($group) {
+                            $groupName = $group->getName();
+                            if (!isset($allOptions[$groupName])) {
+                                $allOptions[$groupName] = [];
+                            }
+                            $allOptions[$groupName][$property->getId()] = $property;
                         }
-                        $allOptions[$groupName][$property->getId()] = $property;
+                    }
+                }
+            }
+            
+            // If we still don't have options, try to get them from the main product
+            if (empty($allOptions)) {
+                // Get options from main product
+                if ($mainProduct->getOptions()) {
+                    foreach ($mainProduct->getOptions() as $option) {
+                        $group = $option->getGroup();
+                        if ($group) {
+                            $groupName = $group->getName();
+                            if (!isset($allOptions[$groupName])) {
+                                $allOptions[$groupName] = [];
+                            }
+                            $allOptions[$groupName][$option->getId()] = $option;
+                        }
+                    }
+                }
+                
+                // Get properties from main product
+                if ($mainProduct->getProperties()) {
+                    foreach ($mainProduct->getProperties() as $property) {
+                        $group = $property->getGroup();
+                        if ($group) {
+                            $groupName = $group->getName();
+                            if (!isset($allOptions[$groupName])) {
+                                $allOptions[$groupName] = [];
+                            }
+                            $allOptions[$groupName][$property->getId()] = $property;
+                        }
                     }
                 }
             }
