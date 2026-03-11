@@ -15,9 +15,19 @@ Shopware.Service('cmsService').registerCmsElement({
             value: null
         },
 
-        products: {
+        imageDimension: {
             source: 'static',
-            value: []
+            value: '300x300'
+        },
+
+        customWidth: {
+            source: 'static',
+            value: 300
+        },
+
+        customHeight: {
+            source: 'static',
+            value: 300
         },
 
         hotspots: {

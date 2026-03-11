@@ -1,142 +1,612 @@
 {% block element_ict_shop_the_look %}
-{% set lookImage = element.config.lookImage.value %}
-{% set products = element.data.products ?? [] %}
-{% set hotspots = element.config.hotspots.value ?? [] %}
-{% set showPrices = element.config.showPrices.value %}
-{% set showVariantSwitch = element.config.showVariantSwitch.value %}
-{% set addAllToCart = element.config.addAllToCart.value %}
-{% set addSingleProduct = element.config.addSingleProduct.value %}
-{% set layoutStyle = element.config.layoutStyle.value %}
-{% set productListWidth = element.config.productListWidth.value %}
-
-<div class="ict-shop-the-look {{ layoutStyle }}" data-shop-the-look="true">
-    
-    {% if layoutStyle != 'only-products' %}
-    <div class="look-image-container">
-        {% if lookImage %}
-            <img src="{{ lookImage.url }}" alt="Shop The Look" class="look-image" />
+    {% set config = element.data %}
+    {% set lookImage = config.lookImage %}
+    {% set hotspots = config.hotspots %}
+    {% set layoutStyle = config.layoutStyle %}
+    <div class="cms-element-ict-shop-the-look">
+        <div class="shop-the-look-container">
             
-            {% for hotspot in hotspots %}
-                {% if products[hotspot.productIndex] is defined %}
-                    {% set product = products[hotspot.productIndex] %}
-                    <div class="hotspot" style="left:{{ hotspot.x }}%;top:{{ hotspot.y }}%;" data-product-id="{{ product.id }}">
-                        <span class="hotspot-marker">+</span>
-                        <div class="hotspot-popup">
-                            <img src="{{ product.cover.url }}" alt="{{ product.translated.name }}" />
-                            <h4>{{ product.translated.name }}</h4>
-                            {% if showPrices %}
-                                <p class="price">{{ product.calculatedPrice.unitPrice|currency }}</p>
-                            {% endif %}
-                            <a href="{{ seoUrl('frontend.detail.page', {'productId': product.id}) }}" class="btn btn-sm btn-primary">View</a>
-                        </div>
+            <!-- Left Side - Main Image with Hotspots -->
+            <div class="shop-the-look-image-section">
+                {% if lookImage and lookImage.url %}
+                    <div class="shop-the-look-main-image" style="position: relative;">
+                        <img 
+                            src="{{ lookImage.url }}" 
+                            alt="Shop The Look"
+                            class="main-look-image"
+                        />
+                        
+                        {% if hotspots %}
+                            {% for hotspot in hotspots %}
+                                <div 
+                                    class="shop-the-look-hotspot"
+                                    data-product-id="{{ hotspot.product.id }}"
+                                    data-hotspot-index="{{ loop.index0 }}"
+                                    style="
+                                        position: absolute;
+                                        left: {{ hotspot.xPosition }}%;
+                                        top: {{ hotspot.yPosition }}%;
+                                        width: 16px;
+                                        height: 16px;
+                                        background: #007bff;
+                                        border: 2px solid white;
+                                        border-radius: 50%;
+                                        transform: translate(-50%, -50%);
+                                        cursor: pointer;
+                                        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                                        z-index: 10;
+                                    "
+                                >
+                                    <span class="hotspot-number">{{ loop.index }}</span>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
                     </div>
                 {% endif %}
-            {% endfor %}
-        {% endif %}
-    </div>
-    {% endif %}
-
-    {% if layoutStyle != 'only-image' %}
-    <div class="look-products-panel" style="width:{{ productListWidth }};">
-        <div class="shop-the-look-form">
-            {% for product in products %}
-                {% if product.available %}
-                    <div class="product-item" data-product-id="{{ product.id }}">
-                        <input type="checkbox" name="products[]" value="{{ product.id }}" id="product-{{ product.id }}" checked />
-                        <label for="product-{{ product.id }}">
-                            <img src="{{ product.cover.url }}" alt="{{ product.translated.name }}" />
-                            <div class="product-info">
-                                <h5>{{ product.translated.name }}</h5>
-                                {% if showPrices %}
-                                    <p class="price">{{ product.calculatedPrice.unitPrice|currency }}</p>
+            </div>
+            
+            <!-- Right Side - Product List -->
+            <div class="shop-the-look-products-section">
+                {% if hotspots %}
+                    <div class="products-list">
+                        {% for hotspot in hotspots %}
+                            <div class="product-item" data-product-id="{{ hotspot.product.id }}">
+                                
+                                <!-- Product Header with Checkbox -->
+                                <div class="product-header">
+                                    <div class="product-checkbox">
+                                        <input 
+                                            type="checkbox" 
+                                            id="product-{{ hotspot.product.id }}" 
+                                            class="product-select-checkbox"
+                                            data-product-id="{{ hotspot.product.id }}"
+                                            checked
+                                        />
+                                        <label for="product-{{ hotspot.product.id }}"></label>
+                                    </div>
+                                    
+                                    <div class="product-basic-info">
+                                        <div class="product-image">
+                                            {% if hotspot.product.cover %}
+                                                <img 
+                                                    src="{{ hotspot.product.cover.media.url }}" 
+                                                    alt="{{ hotspot.product.translated.name }}"
+                                                />
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="product-details">
+                                            <h4 class="product-name">{{ hotspot.product.translated.name }}</h4>
+                                            
+                                            {% if config.showPrices and hotspot.product.calculatedPrice %}
+                                                <div class="product-price">
+                                                    {{ hotspot.product.calculatedPrice.unitPrice|currency }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Product Variants Section -->
+                                {% if config.showVariantSwitch %}
+                                    <div class="product-variants">
+                                        {# Debug: Show what data we have #}
+                                        {# {{ dump('Product ID:', hotspot.product.id) }}
+                                        {{ dump('All variants data:', hotspot.allVariants) }}
+                                        {{ dump('Product options:', hotspot.product.options) }}
+                                        {{ dump('Product properties:', hotspot.product.properties) }} #}
+                                        
+                                        <!-- Show all available variants from allVariants data -->
+                                        {% if hotspot.allVariants %}
+                                            {% for groupName, options in hotspot.allVariants %}
+                                                {% if groupName|lower == 'colour' or groupName|lower == 'color' or groupName|lower == 'size' %}
+                                                    <div class="variant-group">
+                                                        <label class="variant-label">{{ groupName|upper }}</label>
+                                                        <div class="variant-options">
+                                                            {% for optionId, option in options %}
+                                                                <div class="variant-option">
+                                                                    <input 
+                                                                        type="radio" 
+                                                                        name="{{ groupName|lower }}-{{ hotspot.product.id }}" 
+                                                                        id="{{ groupName|lower }}-{{ option.id }}-{{ hotspot.product.id }}"
+                                                                        value="{{ option.id }}"
+                                                                        class="variant-radio"
+                                                                        data-group="{{ groupName|lower }}"
+                                                                        data-product-id="{{ hotspot.product.id }}"
+                                                                        {% if hotspot.product.options %}
+                                                                            {% for productOption in hotspot.product.options %}
+                                                                                {% if productOption.id == option.id %}checked{% endif %}
+                                                                            {% endfor %}
+                                                                        {% elseif loop.first %}checked{% endif %}
+                                                                    />
+                                                                    <label for="{{ groupName|lower }}-{{ option.id }}-{{ hotspot.product.id }}" class="variant-label-option">
+                                                                        {% if groupName|lower == 'color' or groupName|lower == 'colour' %}
+                                                                            <span class="color-swatch" style="background-color: {{ option.colorHexCode ?? '#ccc' }};"></span>
+                                                                        {% endif %}
+                                                                        {{ option.name }}
+                                                                    </label>
+                                                                </div>
+                                                            {% endfor %}
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% else %}
+                                            <!-- Fallback: Show current product options -->
+                                            {% if hotspot.product.options %}
+                                                {% set optionGroups = {} %}
+                                                {% for option in hotspot.product.options %}
+                                                    {% set groupName = option.group.translated.name %}
+                                                    {% if optionGroups[groupName] is not defined %}
+                                                        {% set optionGroups = optionGroups|merge({(groupName): []}) %}
+                                                    {% endif %}
+                                                    {% set optionGroups = optionGroups|merge({(groupName): optionGroups[groupName]|merge([option])}) %}
+                                                {% endfor %}
+                                                
+                                                {% for groupName, options in optionGroups %}
+                                                    {% if groupName|lower == 'colour' or groupName|lower == 'color' or groupName|lower == 'size' %}
+                                                        <div class="variant-group">
+                                                            <label class="variant-label">{{ groupName|upper }}</label>
+                                                            <div class="variant-options">
+                                                                {% for option in options %}
+                                                                    <div class="variant-option">
+                                                                        <input 
+                                                                            type="radio" 
+                                                                            name="{{ groupName|lower }}-{{ hotspot.product.id }}" 
+                                                                            id="{{ groupName|lower }}-{{ option.id }}"
+                                                                            value="{{ option.id }}"
+                                                                            class="variant-radio"
+                                                                            data-group="{{ groupName|lower }}"
+                                                                            checked
+                                                                        />
+                                                                        <label for="{{ groupName|lower }}-{{ option.id }}" class="variant-label-option">
+                                                                            {% if groupName|lower == 'color' or groupName|lower == 'colour' %}
+                                                                                <span class="color-swatch" style="background-color: {{ option.colorHexCode ?? '#ccc' }};"></span>
+                                                                            {% endif %}
+                                                                            {{ option.translated.name }}
+                                                                        </label>
+                                                                    </div>
+                                                                {% endfor %}
+                                                            </div>
+                                                        </div>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% endif %}
+                                            
+                                            <!-- Show properties as fallback for sizes -->
+                                            {% if hotspot.product.properties %}
+                                                {% set propertyGroups = {} %}
+                                                {% for property in hotspot.product.properties %}
+                                                    {% set groupName = property.group.translated.name %}
+                                                    {% if propertyGroups[groupName] is not defined %}
+                                                        {% set propertyGroups = propertyGroups|merge({(groupName): []}) %}
+                                                    {% endif %}
+                                                    {% set propertyGroups = propertyGroups|merge({(groupName): propertyGroups[groupName]|merge([property])}) %}
+                                                {% endfor %}
+                                                
+                                                {% for groupName, properties in propertyGroups %}
+                                                    {% if groupName|lower == 'size' %}
+                                                        <!-- Check if size is not already shown in options -->
+                                                        {% set sizeInOptions = false %}
+                                                        {% if hotspot.product.options %}
+                                                            {% for option in hotspot.product.options %}
+                                                                {% if option.group.translated.name|lower == 'size' %}
+                                                                    {% set sizeInOptions = true %}
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                        {% endif %}
+                                                        
+                                                        {% if not sizeInOptions %}
+                                                            <div class="variant-group">
+                                                                <label class="variant-label">{{ groupName|upper }}</label>
+                                                                <div class="variant-options">
+                                                                    {% for property in properties %}
+                                                                        <div class="variant-option">
+                                                                            <input 
+                                                                                type="radio" 
+                                                                                name="property-{{ groupName|lower }}-{{ hotspot.product.id }}" 
+                                                                                id="property-{{ property.id }}"
+                                                                                value="{{ property.id }}"
+                                                                                class="variant-radio"
+                                                                                data-group="{{ groupName|lower }}"
+                                                                                {% if loop.first %}checked{% endif %}
+                                                                            />
+                                                                            <label for="property-{{ property.id }}" class="variant-label-option">
+                                                                                {{ property.translated.name }}
+                                                                            </label>
+                                                                        </div>
+                                                                    {% endfor %}
+                                                                </div>
+                                                            </div>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% endif %}
+                                        
+                                    </div>
                                 {% endif %}
+                                
+                                <!-- Size Guide Link -->
+                                <div class="size-guide">
+                                    <a href="#" class="size-guide-link">Size Guide</a>
+                                </div>
+                                
+                                <!-- Individual Add to Cart -->
+                                {% if config.addSingleProduct %}
+                                    <div class="individual-add-to-cart">
+                                        <form action="{{ path('frontend.checkout.line-item.add') }}" method="post" class="add-to-cart-form">
+                                            <input type="hidden" name="lineItems[{{ hotspot.product.id }}][id]" value="{{ hotspot.product.id }}">
+                                            <input type="hidden" name="lineItems[{{ hotspot.product.id }}][type]" value="product">
+                                            <input type="hidden" name="lineItems[{{ hotspot.product.id }}][referencedId]" value="{{ hotspot.product.id }}">
+                                            <input type="hidden" name="lineItems[{{ hotspot.product.id }}][quantity]" value="1">
+                                            <input type="hidden" name="lineItems[{{ hotspot.product.id }}][stackable]" value="1">
+                                            <input type="hidden" name="lineItems[{{ hotspot.product.id }}][removable]" value="1">
+                                            
+                                            <button type="submit" class="btn btn-outline-primary add-single-to-cart" data-product-id="{{ hotspot.product.id }}">
+                                                Add to Cart
+                                            </button>
+                                        </form>
+                                    </div>
+                                {% endif %}
+                                
                             </div>
-                        </label>
-                        
-                        {% if showVariantSwitch and product.options|length > 0 %}
-                            <select name="variant[{{ product.id }}]" class="variant-select">
-                                {% for option in product.options %}
-                                    <option value="{{ option.id }}">{{ option.translated.name }}</option>
-                                {% endfor %}
-                            </select>
-                        {% endif %}
-                        
-                        {% if addSingleProduct %}
-                            <button type="button" class="btn btn-sm add-single" data-product-id="{{ product.id }}">Add</button>
-                        {% endif %}
+                        {% endfor %}
                     </div>
+                    
+                    <!-- Add All to Cart Button -->
+                    {% if config.addAllToCart and hotspots|length > 1 %}
+                        <div class="add-all-section">
+                            <form action="{{ path('frontend.checkout.line-item.add') }}" method="post" class="add-all-form">
+                                {% for hotspot in hotspots %}
+                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][id]" value="{{ hotspot.product.id }}">
+                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][type]" value="product">
+                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][referencedId]" value="{{ hotspot.product.id }}">
+                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][quantity]" value="1">
+                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][stackable]" value="1">
+                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][removable]" value="1">
+                                {% endfor %}
+                                
+                                <button type="submit" class="btn btn-primary btn-lg add-all-to-cart">
+                                    ADD TO CART
+                                </button>
+                            </form>
+                        </div>
+                    {% endif %}
                 {% endif %}
-            {% endfor %}
+            </div>
             
-            {% if addAllToCart %}
-                <button type="button" class="btn btn-primary shop-the-look-btn">Shop The Look</button>
-            {% endif %}
         </div>
     </div>
-    {% endif %}
+{% endblock %}
 
-</div>
-
-<style>
-.ict-shop-the-look { display: flex; gap: 30px; padding: 20px; }
-.ict-shop-the-look.image-products { flex-direction: row; }
-.ict-shop-the-look.products-image { flex-direction: row-reverse; }
-.ict-shop-the-look.only-image { justify-content: center; }
-.ict-shop-the-look.only-products { justify-content: center; }
-.look-image-container { position: relative; flex: 1; }
-.look-image { width: 100%; height: auto; display: block; }
-.hotspot { position: absolute; transform: translate(-50%, -50%); cursor: pointer; }
-.hotspot-marker { display: block; width: 30px; height: 30px; background: #007bff; color: white; border-radius: 50%; text-align: center; line-height: 30px; font-size: 20px; }
-.hotspot-popup { display: none; position: absolute; top: 40px; left: 50%; transform: translateX(-50%); background: white; border: 1px solid #ddd; padding: 15px; width: 200px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10; }
-.hotspot:hover .hotspot-popup { display: block; }
-.hotspot-popup img { width: 100%; height: auto; margin-bottom: 10px; }
-.hotspot-popup h4 { font-size: 14px; margin: 0 0 5px; }
-.hotspot-popup .price { font-weight: bold; margin: 5px 0; }
-.look-products-panel { flex-shrink: 0; }
-.product-item { display: flex; align-items: center; gap: 10px; padding: 15px; border: 1px solid #ddd; margin-bottom: 10px; }
-.product-item img { width: 60px; height: 60px; object-fit: cover; }
-.product-info h5 { margin: 0; font-size: 14px; }
-.product-info .price { margin: 5px 0 0; font-weight: bold; }
-.variant-select { padding: 5px; }
-.shop-the-look-btn { width: 100%; margin-top: 15px; }
-</style>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.add-single').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const productId = this.dataset.productId;
-            const form = new FormData();
-            form.append('lineItems[' + productId + '][id]', productId);
-            form.append('lineItems[' + productId + '][type]', 'product');
-            form.append('lineItems[' + productId + '][referencedId]', productId);
-            form.append('lineItems[' + productId + '][quantity]', 1);
+{% block element_ict_shop_the_look_styles %}
+    <style>
+        .shop-the-look-container {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .shop-the-look-image-section {
+            position: relative;
+        }
+        
+        .main-look-image {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+        
+        .shop-the-look-hotspot {
+            position: relative;
+            animation: pulse 2s infinite;
+        }
+        
+        .shop-the-look-hotspot:hover {
+            transform: translate(-50%, -50%) scale(1.2) !important;
+        }
+        
+        .hotspot-number {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 123, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0); }
+        }
+        
+        .shop-the-look-products-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            height: fit-content;
+        }
+        
+        .products-list {
+            margin-bottom: 20px;
+        }
+        
+        .product-item {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .product-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .product-checkbox {
+            margin-top: 5px;
+        }
+        
+        .product-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #007bff;
+        }
+        
+        .product-basic-info {
+            display: flex;
+            gap: 15px;
+            flex: 1;
+        }
+        
+        .product-image img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        
+        .product-details {
+            flex: 1;
+        }
+        
+        .product-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin: 0 0 5px 0;
+            color: #007bff;
+            text-transform: uppercase;
+        }
+        
+        .product-price {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .product-variants {
+            margin-bottom: 15px;
+        }
+        
+        .variant-group {
+            margin-bottom: 15px;
+        }
+        
+        .variant-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        
+        .variant-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .variant-option {
+            position: relative;
+        }
+        
+        .variant-radio {
+            display: none;
+        }
+        
+        .variant-label-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .variant-radio:checked + .variant-label-option {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        
+        .color-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 1px solid #ddd;
+        }
+        
+        .size-guide {
+            margin-bottom: 15px;
+        }
+        
+        .size-guide-link {
+            font-size: 12px;
+            color: #666;
+            text-decoration: underline;
+        }
+        
+        .individual-add-to-cart {
+            margin-bottom: 10px;
+        }
+        
+        .add-single-to-cart {
+            width: 100%;
+            padding: 8px 16px;
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        
+        .add-all-section {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .add-all-to-cart {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .shop-the-look-container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
             
-            fetch('{{ path('frontend.checkout.line-item.add') }}', {
-                method: 'POST',
-                body: form
-            }).then(() => location.reload());
-        });
-    });
-    
-    document.querySelectorAll('.shop-the-look-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const form = new FormData();
-            document.querySelectorAll('.product-item input[type="checkbox"]:checked').forEach(checkbox => {
-                const productId = checkbox.value;
-                form.append('lineItems[' + productId + '][id]', productId);
-                form.append('lineItems[' + productId + '][type]', 'product');
-                form.append('lineItems[' + productId + '][referencedId]', productId);
-                form.append('lineItems[' + productId + '][quantity]', 1);
+            .shop-the-look-products-section {
+                order: -1;
+            }
+        }
+        
+        /* Product item disabled state */
+        .product-item.disabled {
+            opacity: 0.6;
+        }
+        
+        .product-item.disabled .add-single-to-cart {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+    </style>
+{% endblock %}
+
+{% block element_ict_shop_the_look_scripts %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // Product checkbox functionality
+            document.querySelectorAll('.product-select-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const productItem = this.closest('.product-item');
+                    const form = productItem.querySelector('.add-to-cart-form');
+                    
+                    if (this.checked) {
+                        productItem.classList.remove('disabled');
+                        if (form) form.style.display = 'block';
+                    } else {
+                        productItem.classList.add('disabled');
+                        if (form) form.style.display = 'none';
+                    }
+                    updateAddAllButton();
+                });
             });
             
-            fetch('{{ path('frontend.checkout.line-item.add') }}', {
-                method: 'POST',
-                body: form
-            }).then(() => location.reload());
+            // Hotspot click to highlight product
+            document.querySelectorAll('.shop-the-look-hotspot').forEach(hotspot => {
+                hotspot.addEventListener('click', function() {
+                    const productId = this.dataset.productId;
+                    const productItem = document.querySelector(`.product-item[data-product-id="${productId}"]`);
+                    
+                    // Remove previous highlights
+                    document.querySelectorAll('.product-item').forEach(item => {
+                        item.classList.remove('highlighted');
+                    });
+                    
+                    // Highlight clicked product
+                    if (productItem) {
+                        productItem.classList.add('highlighted');
+                        productItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                });
+            });
+            
+            // Handle variant selection for individual forms
+            document.querySelectorAll('.variant-radio').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const productId = this.dataset.productId;
+                    const group = this.dataset.group;
+                    const optionId = this.value;
+                    const form = this.closest('.product-item').querySelector('.add-to-cart-form');
+                    
+                    if (form) {
+                        // Remove existing option inputs for this group
+                        form.querySelectorAll(`input[name*="[options][${group}]"]`).forEach(input => input.remove());
+                        
+                        // Add new option input
+                        const optionInput = document.createElement('input');
+                        optionInput.type = 'hidden';
+                        optionInput.name = `lineItems[${productId}][payload][options][${optionId}]`;
+                        optionInput.value = optionId;
+                        form.appendChild(optionInput);
+                    }
+                });
+            });
+            
+            function updateAddAllButton() {
+                const checkedProducts = document.querySelectorAll('.product-select-checkbox:checked').length;
+                const addAllButton = document.querySelector('.add-all-to-cart');
+                const addAllForm = document.querySelector('.add-all-form');
+                
+                if (addAllButton && addAllForm) {
+                    if (checkedProducts === 0) {
+                        addAllButton.disabled = true;
+                        addAllButton.textContent = 'SELECT PRODUCTS';
+                    } else {
+                        addAllButton.disabled = false;
+                        addAllButton.textContent = `ADD ${checkedProducts} TO CART`;
+                        
+                        // Update form to only include checked products
+                        const uncheckedProducts = document.querySelectorAll('.product-select-checkbox:not(:checked)');
+                        uncheckedProducts.forEach(checkbox => {
+                            const productId = checkbox.dataset.productId;
+                            addAllForm.querySelectorAll(`input[name*="[${productId}]"]`).forEach(input => {
+                                input.disabled = true;
+                            });
+                        });
+                        
+                        const checkedProductsInputs = document.querySelectorAll('.product-select-checkbox:checked');
+                        checkedProductsInputs.forEach(checkbox => {
+                            const productId = checkbox.dataset.productId;
+                            addAllForm.querySelectorAll(`input[name*="[${productId}]"]`).forEach(input => {
+                                input.disabled = false;
+                            });
+                        });
+                    }
+                }
+            }
+            
+            // Initialize
+            updateAddAllButton();
         });
-    });
-});
-</script>
-
+    </script>
 {% endblock %}

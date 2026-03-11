@@ -8,5 +8,11 @@
         <service id="ICTECHShopTheLook\Core\Content\Cms\SalesChannel\IctShopLookSliderCmsElementResolver">
             <tag name="shopware.cms.data_resolver"/>
         </service>
+        
+        <!-- Shop The Look CMS Element Resolver -->
+        <service id="ICTECHShopTheLook\Core\Content\Cms\ShopTheLookCmsElementResolver">
+            <argument type="service" id="sales_channel.product.repository"/>
+            <tag name="shopware.cms.data_resolver"/>
+        </service>
     </services>
 </container>

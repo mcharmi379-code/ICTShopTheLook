@@ -4,7 +4,6 @@
 
         <template #default="{ active }">
             <sw-tabs-item name="content" :active-tab="active">Content</sw-tabs-item>
-            <sw-tabs-item name="hotspots" :active-tab="active">Hotspots</sw-tabs-item>
             <sw-tabs-item name="settings" :active-tab="active">Settings</sw-tabs-item>
         </template>
 
@@ -12,6 +11,33 @@
 
             <div v-show="active === 'content'">
 
+                <!-- Image Dimension Selection -->
+                <mt-select
+                    v-model="element.config.imageDimension.value"
+                    label="Image Dimension"
+                    :options="imageDimensionOptions"
+                    @update:model-value="$emit('element-update', element)"
+                />
+
+                <!-- Custom Dimension Fields (if custom is selected) -->
+                <div v-if="element.config.imageDimension.value === 'custom'" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                    <mt-number-field
+                        v-model="element.config.customWidth.value"
+                        label="Width (px)"
+                        :min="50"
+                        :max="2000"
+                        @update:model-value="$emit('element-update', element)"
+                    />
+                    <mt-number-field
+                        v-model="element.config.customHeight.value"
+                        label="Height (px)"
+                        :min="50"
+                        :max="2000"
+                        @update:model-value="$emit('element-update', element)"
+                    />
+                </div>
+
+                <!-- Image Upload -->
                 <sw-upload-listener
                     :upload-tag="uploadTag"
                     auto-upload
@@ -27,56 +53,121 @@
                     @media-upload-remove-image="onRemoveImage"
                 />
 
-            <sw-entity-multi-select
-                label="Products"
-                entity="product"
-                :entity-collection="products"
-                :criteria="productCriteria"
-                :context="productContext"
-                advanced-selection-component="sw-advanced-selection-product"
-                @update:entity-collection="setProductCollection">
-
-
-
-</sw-entity-multi-select>
-
-            </div>
-
-            <div v-show="active === 'hotspots'">
-
-                <div v-if="element.config.lookImage.value">
-
-                    <div class="hotspot-editor" style="position:relative;display:inline-block;">
-
-                        <img
-                            :src="element.config.lookImage.value.url"
-                            style="max-width:100%;"
+                <!-- Hotspots Section -->
+                <div class="hotspot-section" style="margin-top: 30px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3>Product Hotspots</h3>
+                        <sw-button
+                            variant="primary"
+                            size="small"
                             @click="addHotspot"
-                        />
-
-                        <div
-                            v-for="(hotspot, index) in element.config.hotspots.value"
-                            :key="index"
-                            :style="{
-                                position:'absolute',
-                                left:hotspot.x+'%',
-                                top:hotspot.y+'%',
-                                width:'20px',
-                                height:'20px',
-                                background:'#007bff',
-                                borderRadius:'50%',
-                                cursor:'pointer'
-                            }"
-                            @click.stop="removeHotspot(index)"
-                        ></div>
-
+                        >
+                            Add Hotspot
+                        </sw-button>
                     </div>
 
-                    <p>Click on image to add hotspots. Click hotspot to remove.</p>
+                    <!-- Hotspot List -->
+                    <div v-if="hotspots.length > 0" class="hotspot-list">
+                        <div
+                            v-for="(hotspot, index) in hotspots"
+                            :key="hotspot.id"
+                            class="hotspot-item"
+                            style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 4px;"
+                        >
+                            <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 10px;">
+                                <h4>Hotspot {{ index + 1 }}</h4>
+                                <sw-button
+                                    variant="danger"
+                                    size="small"
+                                    @click="removeHotspot(index)"
+                                >
+                                    Remove
+                                </sw-button>
+                            </div>
 
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 15px; align-items: start;">
+                                
+                                <!-- X and Y Position Controls -->
+                                <div>
+                                    <mt-number-field
+                                        v-model="hotspot.xPosition"
+                                        label="X Position (%)"
+                                        :min="0"
+                                        :max="100"
+                                        @update:model-value="onHotspotChange(index)"
+                                    />
+                                    <mt-number-field
+                                        v-model="hotspot.yPosition"
+                                        label="Y Position (%)"
+                                        :min="0"
+                                        :max="100"
+                                        @update:model-value="onHotspotChange(index)"
+                                        style="margin-top: 10px;"
+                                    />
+                                </div>
+
+                                <!-- Product Selection -->
+                                <div>
+                                    <sw-entity-single-select
+                                        v-model:value="hotspot.productId"
+                                        label="Select Product"
+                                        entity="product"
+                                        :criteria="productCriteria"
+                                        :context="productContext"
+                                        show-clearable-button
+                                        @update:value="onHotspotChange(index)"
+                                    />
+                                </div>
+
+                                <!-- Image Preview with Hotspot -->
+                                <div v-if="element.config.lookImage.value" class="image-preview">
+                                    <div style="position: relative; display: inline-block; max-width: 200px;">
+                                        <img
+                                            :src="element.config.lookImage.value.url"
+                                            style="width: 100%; height: auto; border: 1px solid #ccc;"
+                                            alt="Look Preview"
+                                        />
+                                        
+                                        <!-- Show all hotspots on preview -->
+                                        <div
+                                            v-for="(previewHotspot, previewIndex) in hotspots"
+                                            :key="previewHotspot.id"
+                                            :style="{
+                                                position: 'absolute',
+                                                left: previewHotspot.xPosition + '%',
+                                                top: previewHotspot.yPosition + '%',
+                                                width: '12px',
+                                                height: '12px',
+                                                background: previewIndex === index ? '#ff0000' : '#007bff',
+                                                borderRadius: '50%',
+                                                transform: 'translate(-50%, -50%)',
+                                                border: '2px solid white',
+                                                boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                                                zIndex: 10
+                                            }"
+                                            :title="`Hotspot ${previewIndex + 1}`"
+                                        ></div>
+                                    </div>
+                                    <p style="font-size: 12px; color: #666; margin-top: 5px;">
+                                        Red dot = Current hotspot<br>
+                                        Blue dots = Other hotspots
+                                    </p>
+                                </div>
+
+                                <div v-else class="no-image-preview">
+                                    <p style="color: #999; font-style: italic;">Upload an image to see preview</p>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-else class="no-hotspots">
+                        <p style="color: #999; text-align: center; padding: 20px;">
+                            No hotspots added yet. Click "Add Hotspot" to get started.
+                        </p>
+                    </div>
                 </div>
-
-                <p v-else>Upload an image first</p>
 
             </div>
 
