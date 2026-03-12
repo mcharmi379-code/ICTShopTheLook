@@ -1,9 +1,10 @@
 {% block element_ict_shop_the_look %}
     {% set config = element.data %}
+    {# {{dump(config)}} #}
+
     {% set lookImage = config.lookImage %}
     {% set hotspots = config.hotspots %}
     {% set layoutStyle = config.layoutStyle %}
-    {# {{dump(config)}} #}
     <div class="cms-element-ict-shop-the-look">
         <div class="shop-the-look-container">
             
@@ -15,6 +16,14 @@
                             src="{{ lookImage.url }}" 
                             alt="Shop The Look"
                             class="main-look-image"
+                            {% if config.imageWidth and config.imageHeight %}
+                                width="{{ config.imageWidth }}" height="{{ config.imageHeight }}"
+                            {% elseif config.imageDimension and config.imageDimension != 'custom' %}
+                                {% set dimensions = config.imageDimension|split('x') %}
+                                width="{{ dimensions[0] }}" height="{{ dimensions[1] }}"
+                            {% elseif config.customWidth and config.customHeight %}
+                                width="{{ config.customWidth }}" height="{{ config.customHeight }}"
+                            {% endif %}
                         />
                         
                         {% if hotspots %}
@@ -49,7 +58,9 @@
                                                 {% endif %}
                                             </div>
                                             <div class="popup-details">
-                                                <h4 class="popup-product-name">{{ hotspot.product.translated.name }}</h4>
+                                                <a href="{{ seoUrl('frontend.detail.page', {'productId': hotspot.product.id}) }}" class="popup-product-link">
+                                                    <h4 class="popup-product-name">{{ hotspot.product.translated.name }}</h4>
+                                                </a>
                                                 {% if hotspot.product.calculatedPrice %}
                                                     <div class="popup-price">{{ hotspot.product.calculatedPrice.unitPrice|currency }}</div>
                                                 {% endif %}
@@ -98,7 +109,8 @@
                                         </div>
                                         
                                         <div class="product-details">
-                                            <h4 class="product-name">{{ hotspot.product.translated.name }}</h4>
+                                          <a href="{{ seoUrl('frontend.detail.page', {'productId': hotspot.product.id}) }}" class="popup-product-link">
+                                            <h4 class="product-name">{{ hotspot.product.translated.name }}</h4> </a>
                                             
                                             {% if config.showPrices and hotspot.product.calculatedPrice %}
                                                 <div class="product-price">
@@ -365,6 +377,13 @@
             {% if config.imageWidth and config.imageHeight %}
             width: {{ config.imageWidth }}px;
             height: {{ config.imageHeight }}px;
+            {% elseif config.imageDimension and config.imageDimension != 'custom' %}
+            {% set dimensions = config.imageDimension|split('x') %}
+            width: {{ dimensions[0] }}px;
+            height: {{ dimensions[1] }}px;
+            {% elseif config.customWidth and config.customHeight %}
+            width: {{ config.customWidth }}px;
+            height: {{ config.customHeight }}px;
             {% else %}
             width: 100%;
             height: auto;
@@ -431,12 +450,26 @@
             padding: 12px;
         }
         
+        .popup-product-link {
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        .popup-product-link:hover {
+            text-decoration: none;
+        }
+        
+        .popup-product-link:hover .popup-product-name {
+            color: #007bff;
+        }
+        
         .popup-product-name {
             font-size: 14px;
             font-weight: 600;
             margin: 0 0 8px 0;
             color: #333;
             line-height: 1.3;
+            transition: color 0.2s;
         }
         
         .popup-price {

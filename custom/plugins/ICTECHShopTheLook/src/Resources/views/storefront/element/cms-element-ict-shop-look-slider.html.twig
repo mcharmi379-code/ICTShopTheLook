@@ -78,100 +78,256 @@ sliders.forEach(function(container) {
     autoplayTimeout: element.config.autoplayTimeout.value
 } %}
 
-{# {% set sliderItems = element.data.sliderItems ?? element.config.sliderItems.value ?? [] %} #}
 {% set sliderItems = element.data.sliderItems ?? [] %}
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tiny-slider/2.9.4/tiny-slider.css">
-
 <div class="ict-shop-look-slider" data-shop-look-slider-options='{{ sliderConfig|json_encode }}'>
-
     <div class="ict-slider-container">
-    {# {{dump("hsdds",sliderItems)}} #}
         {% if sliderItems is not empty %}
-
-        {% for item in sliderItems %}
-            {% if item.media and item.media.url %}
-                <div class="ict-slide">
-
-                    {% if item.url %}
-                        <a href="{{ item.url }}" {% if item.newTab %}target="_blank" rel="noopener"{% endif %}>
-                    {% endif %}
-
-                    <img src="{{ item.media.url }}" alt="">
-
-                    {% if item.url %}
-                        </a>
-                    {% endif %}
-
-                </div>
-            {% endif %}
-        {% endfor %}
-
+            {% for item in sliderItems %}
+                {% if item.media and item.media.url %}
+                    <div class="ict-slide">
+                        {% if item.url %}
+                            <a href="{{ item.url }}" {% if item.newTab %}target="_blank" rel="noopener"{% endif %}>
+                        {% endif %}
+                        <img src="{{ item.media.url }}" alt="">
+                        {% if item.url %}
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
         {% else %}
-
-            {# Default images if none configured #}
             {% for i in 1..6 %}
                 <div class="ict-slide">
-                  <img src="{{ asset('bundles/administration/administration/static/img/cms/preview_mountain_large.webp') }}" alt="">
+                    <img src="{{ asset('bundles/administration/administration/static/img/cms/preview_mountain_large.webp') }}" alt="">
                 </div>
             {% endfor %}
-
         {% endif %}
-
     </div>
-
+    
+    {% if sliderConfig.navigationArrows != 'none' %}
+        <button class="ict-slider-prev" aria-label="Previous slide">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/>
+            </svg>
+        </button>
+        <button class="ict-slider-next" aria-label="Next slide">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/>
+            </svg>
+        </button>
+    {% endif %}
+    
+    {% if sliderConfig.navigationDots != 'none' %}
+        <div class="ict-slider-dots"></div>
+    {% endif %}
 </div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tiny-slider/2.9.4/min/tiny-slider.js"></script>
 
 <script>
 window.addEventListener('load', function () {
-    var sliders = document.querySelectorAll('.ict-slider-container');
-    sliders.forEach(function(container) {
-        if (container.children.length > 0) {
-            var options = {{ sliderConfig|json_encode|raw }};
-            tns({
-                container: container,
-                items: 6,
-                slideBy: 1,
-                gutter: 20,
-                controls: options.navigationArrows !== 'none',
-                controlsPosition: options.navigationArrows === 'outside' ? 'bottom' : 'top',
-                controlsText: ['<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/></svg>', '<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/></svg>'],
-                nav: options.navigationDots !== 'none',
-                navPosition: options.navigationDots === 'outside' ? 'bottom' : 'top',
-                mouseDrag: true,
-                speed: options.speed || 300,
-                autoplay: options.autoSlide || false,
-                autoplayTimeout: options.autoplayTimeout || 5000,
-                autoplayButtonOutput: false,
-                responsive: {
-                    1200: { items: 6 },
-                    992: { items: 4 },
-                    768: { items: 3 },
-                    480: { items: 2 }
-                }
-            });
+    const sliders = document.querySelectorAll('.ict-shop-look-slider');
+    
+    sliders.forEach(function(slider) {
+        const container = slider.querySelector('.ict-slider-container');
+        const slides = container.querySelectorAll('.ict-slide');
+        const prevBtn = slider.querySelector('.ict-slider-prev');
+        const nextBtn = slider.querySelector('.ict-slider-next');
+        const dotsContainer = slider.querySelector('.ict-slider-dots');
+        const options = JSON.parse(slider.dataset.shopLookSliderOptions);
+        
+        if (slides.length === 0) return;
+        
+        let currentIndex = 0;
+        let itemsPerView = 6;
+        let autoplayInterval;
+        
+        // Responsive items per view
+        function updateItemsPerView() {
+            const width = window.innerWidth;
+            if (width >= 1200) itemsPerView = 6;
+            else if (width >= 992) itemsPerView = 4;
+            else if (width >= 768) itemsPerView = 3;
+            else itemsPerView = 2;
         }
+        
+        // Create dots
+        function createDots() {
+            if (!dotsContainer) return;
+            dotsContainer.innerHTML = '';
+            const totalDots = Math.ceil(slides.length / itemsPerView);
+            for (let i = 0; i < totalDots; i++) {
+                const dot = document.createElement('button');
+                dot.classList.add('ict-slider-dot');
+                if (i === 0) dot.classList.add('active');
+                dot.addEventListener('click', () => goToSlide(i * itemsPerView));
+                dotsContainer.appendChild(dot);
+            }
+        }
+        
+        // Update slider position
+        function updateSlider() {
+            const slideWidth = 100 / itemsPerView;
+            const translateX = -(currentIndex * slideWidth);
+            container.style.transform = `translateX(${translateX}%)`;
+            
+            // Update dots
+            if (dotsContainer) {
+                const dots = dotsContainer.querySelectorAll('.ict-slider-dot');
+                dots.forEach((dot, index) => {
+                    dot.classList.toggle('active', index === Math.floor(currentIndex / itemsPerView));
+                });
+            }
+        }
+        
+        // Go to specific slide
+        function goToSlide(index) {
+            currentIndex = Math.max(0, Math.min(index, slides.length - itemsPerView));
+            updateSlider();
+        }
+        
+        // Next slide
+        function nextSlide() {
+            if (currentIndex < slides.length - itemsPerView) {
+                currentIndex++;
+            } else {
+                currentIndex = 0;
+            }
+            updateSlider();
+        }
+        
+        // Previous slide
+        function prevSlide() {
+            if (currentIndex > 0) {
+                currentIndex--;
+            } else {
+                currentIndex = slides.length - itemsPerView;
+            }
+            updateSlider();
+        }
+        
+        // Initialize
+        function init() {
+            updateItemsPerView();
+            
+            // Set up container styles
+            container.style.display = 'flex';
+            container.style.transition = `transform ${options.speed || 300}ms ease`;
+            container.style.width = `${slides.length * (100 / itemsPerView)}%`;
+            
+            slides.forEach(slide => {
+                slide.style.flex = `0 0 ${100 / slides.length}%`;
+            });
+            
+            createDots();
+            updateSlider();
+            
+            // Event listeners
+            if (prevBtn) prevBtn.addEventListener('click', prevSlide);
+            if (nextBtn) nextBtn.addEventListener('click', nextSlide);
+            
+            // Autoplay
+            if (options.autoSlide) {
+                autoplayInterval = setInterval(nextSlide, options.autoplayTimeout || 5000);
+                
+                // Pause on hover
+                slider.addEventListener('mouseenter', () => clearInterval(autoplayInterval));
+                slider.addEventListener('mouseleave', () => {
+                    if (options.autoSlide) {
+                        autoplayInterval = setInterval(nextSlide, options.autoplayTimeout || 5000);
+                    }
+                });
+            }
+        }
+        
+        // Responsive handling
+        window.addEventListener('resize', () => {
+            updateItemsPerView();
+            createDots();
+            goToSlide(0);
+        });
+        
+        init();
     });
 });
 </script>
 
 <style>
-.ict-slider-container { visibility: hidden; }
-.tns-slider { visibility: visible !important; }
-.ict-shop-look-slider { padding: 20px 60px; position: relative; }
-.ict-slide { padding: 0 10px; }
-.ict-slide img { width: 100%; height: auto; display: block; }
-.ict-slide a { display: block; }
-.tns-controls { position: absolute; top: 50%; transform: translateY(-50%); width: 100%; left: 0; right: 0; pointer-events: none; }
-.tns-controls button { position: absolute; background: #007bff; color: white; border: none; padding: 0; cursor: pointer; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; pointer-events: auto; z-index: 10; }
-.tns-controls button:first-child { left: -60px; }
-.tns-controls button:last-child { right: -60px; }
-.tns-controls button:hover { background: #0056b3; }
-.tns-nav { text-align: center; margin-top: 20px; }
-.tns-nav button { width: 10px; height: 10px; background: #ccc; border: none; border-radius: 50%; margin: 0 5px; cursor: pointer; }
-.tns-nav button.tns-nav-active { background: #007bff; }
+.ict-shop-look-slider {
+    padding: 20px 60px;
+    position: relative;
+    overflow: hidden;
+}
+
+.ict-slider-container {
+    display: flex;
+    transition: transform 300ms ease;
+}
+
+.ict-slide {
+    padding: 0 10px;
+    flex: 0 0 auto;
+}
+
+.ict-slide img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.ict-slide a {
+    display: block;
+}
+
+.ict-slider-prev,
+.ict-slider-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.ict-slider-prev {
+    left: 10px;
+}
+
+.ict-slider-next {
+    right: 10px;
+}
+
+.ict-slider-prev:hover,
+.ict-slider-next:hover {
+    background: #0056b3;
+}
+
+.ict-slider-dots {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.ict-slider-dot {
+    width: 10px;
+    height: 10px;
+    background: #ccc;
+    border: none;
+    border-radius: 50%;
+    margin: 0 5px;
+    cursor: pointer;
+}
+
+.ict-slider-dot.active {
+    background: #007bff;
+}
 </style>
 
 {% endblock %}

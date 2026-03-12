@@ -21,6 +21,27 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
         };
     },
 
+    watch: {
+        'element.config.imageDimension.value'(newValue) {
+            console.log('Image dimension changed to:', newValue);
+            console.log('Current config before change:', JSON.stringify({
+                imageDimension: this.element.config.imageDimension?.value,
+                customWidth: this.element.config.customWidth?.value,
+                customHeight: this.element.config.customHeight?.value
+            }));
+            
+            this.cleanupDimensionConfig();
+            
+            console.log('Config after change:', JSON.stringify({
+                imageDimension: this.element.config.imageDimension?.value,
+                customWidth: this.element.config.customWidth?.value,
+                customHeight: this.element.config.customHeight?.value
+            }));
+            
+            this.onElementUpdate();
+        }
+    },
+
     computed: {
         mediaRepository() {
             return this.repositoryFactory.create('media');
@@ -79,6 +100,34 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
     },
 
     methods: {
+        cleanupDimensionConfig() {
+            const imageDimension = this.element.config.imageDimension?.value;
+            
+            if (imageDimension !== 'custom') {
+                // Clear custom dimensions when using predefined size
+                if (this.element.config.customWidth) {
+                    this.element.config.customWidth.value = null;
+                }
+                if (this.element.config.customHeight) {
+                    this.element.config.customHeight.value = null;
+                }
+                console.log('Cleared custom dimensions for predefined size:', imageDimension);
+            }
+        },
+
+        onElementUpdate() {
+            // Clean up dimension config before saving
+            this.cleanupDimensionConfig();
+            
+            console.log('Final config before save:', JSON.stringify({
+                imageDimension: this.element.config.imageDimension?.value,
+                customWidth: this.element.config.customWidth?.value,
+                customHeight: this.element.config.customHeight?.value
+            }));
+            
+            this.$emit('element-update', this.element);
+        },
+
         loadHotspots() {
             if (this.element.config.hotspots?.value) {
                 this.hotspots = this.element.config.hotspots.value;
@@ -114,7 +163,14 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
         saveHotspots() {
             this.element.config.hotspots.value = this.hotspots;
             console.log('Shop The Look - All Hotspots Saved:', this.hotspots);
-            this.$emit('element-update', this.element);
+            console.log('Shop The Look - Full Config Being Saved:', JSON.stringify({
+                imageDimension: this.element.config.imageDimension?.value,
+                customWidth: this.element.config.customWidth?.value,
+                customHeight: this.element.config.customHeight?.value,
+                layout: this.element.config.layout?.value,
+                hotspots: this.element.config.hotspots?.value
+            }));
+            this.onElementUpdate();
         },
 
         generateId() {
@@ -126,7 +182,7 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
             this.element.config.lookImage.value = selection[0];
             this.mediaModalOpen = false;
             console.log('Shop The Look - Look Image Saved:', this.element.config.lookImage.value);
-            this.$emit('element-update', this.element);
+            this.onElementUpdate();
         },
 
         onMediaUpload(mediaItem) {
@@ -139,7 +195,7 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
             const media = await this.mediaRepository.get(targetId);
             this.element.config.lookImage.value = media;
             console.log('Shop The Look - Media Item Set:', media);
-            this.$emit('element-update', this.element);
+            this.onElementUpdate();
         },
 
         onMediaUploadOpen() {
@@ -154,7 +210,7 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
             console.log('Shop The Look - Image Removed');
             this.element.config.lookImage.value = null;
             console.log('Shop The Look - Look Image After Remove:', this.element.config.lookImage.value);
-            this.$emit('element-update', this.element);
+            this.onElementUpdate();
         }
     }
 });
