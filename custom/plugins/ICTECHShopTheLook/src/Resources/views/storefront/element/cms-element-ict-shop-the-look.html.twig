@@ -95,46 +95,33 @@
                                         <!-- Show all available variants from allVariants data -->
                                         {% if hotspot.allVariants %}
                                             {% for groupName, options in hotspot.allVariants %}
-                                                {% if groupName|lower == 'colour' or groupName|lower == 'color' or groupName|lower == 'size' %}
-                                                    <div class="variant-group">
-                                                        <label class="variant-label">{{ groupName|upper }}</label>
-                                                        <div class="variant-options">
-                                                            {% for optionId, option in options %}
-                                                                <div class="variant-option">
-                                                                    <input 
-                                                                        type="radio" 
-                                                                        name="{{ groupName|lower }}-{{ hotspot.product.id }}" 
-                                                                        id="{{ groupName|lower }}-{{ option.id }}-{{ hotspot.product.id }}"
-                                                                        value="{{ option.id }}"
-                                                                        class="variant-radio"
-                                                                        data-group="{{ groupName|lower }}"
-                                                                        data-product-id="{{ hotspot.product.id }}"
-                                                                        data-option-id="{{ option.id }}"
-                                                                        data-option-name="{{ option.name }}"
-                                                                        {% if hotspot.product.children and hotspot.product.children|length > 0 %}
-                                                                            {% set defaultChild = hotspot.product.children.first %}
-                                                                            {% if defaultChild.options %}
-                                                                                {% for childOption in defaultChild.options %}
-                                                                                    {% if childOption.id == option.id %}checked{% endif %}
-                                                                                {% endfor %}
-                                                                            {% endif %}
-                                                                        {% elseif hotspot.product.options %}
-                                                                            {% for productOption in hotspot.product.options %}
-                                                                                {% if productOption.id == option.id %}checked{% endif %}
-                                                                            {% endfor %}
-                                                                        {% elseif loop.first %}checked{% endif %}
-                                                                    />
-                                                                    <label for="{{ groupName|lower }}-{{ option.id }}-{{ hotspot.product.id }}" class="variant-label-option">
-                                                                        {% if groupName|lower == 'color' or groupName|lower == 'colour' %}
-                                                                            <span class="color-swatch" style="background-color: {{ option.colorHexCode ?? '#ccc' }};"></span>
-                                                                        {% endif %}
-                                                                        {{ option.name }}
-                                                                    </label>
-                                                                </div>
-                                                            {% endfor %}
-                                                        </div>
+                                                <div class="variant-group">
+                                                    <label class="variant-label">{{ groupName|upper }}</label>
+                                                    <div class="variant-options">
+                                                        {% for optionId, option in options %}
+                                                            <div class="variant-option">
+                                                                <input 
+                                                                    type="radio" 
+                                                                    name="{{ groupName|lower }}-{{ hotspot.product.id }}" 
+                                                                    id="{{ groupName|lower }}-{{ option.id }}-{{ hotspot.product.id }}"
+                                                                    value="{{ option.id }}"
+                                                                    class="variant-radio"
+                                                                    data-group="{{ groupName|lower }}"
+                                                                    data-product-id="{{ hotspot.product.id }}"
+                                                                    data-option-id="{{ option.id }}"
+                                                                    data-option-name="{{ option.name }}"
+                                                                    {% if loop.first %}checked{% endif %}
+                                                                />
+                                                                <label for="{{ groupName|lower }}-{{ option.id }}-{{ hotspot.product.id }}" class="variant-label-option">
+                                                                    {% if groupName|lower == 'color' or groupName|lower == 'colour' %}
+                                                                        <span class="color-swatch" style="background-color: {{ option.colorHexCode ?? '#ccc' }};"></span>
+                                                                    {% endif %}
+                                                                    {{ option.name }}
+                                                                </label>
+                                                            </div>
+                                                        {% endfor %}
                                                     </div>
-                                                {% endif %}
+                                                </div>
                                             {% endfor %}
                                         {% else %}
                                             <!-- Fallback: Show current product options -->
@@ -149,38 +136,36 @@
                                                 {% endfor %}
                                                 
                                                 {% for groupName, options in optionGroups %}
-                                                    {% if groupName|lower == 'colour' or groupName|lower == 'color' or groupName|lower == 'size' %}
-                                                        <div class="variant-group">
-                                                            <label class="variant-label">{{ groupName|upper }}</label>
-                                                            <div class="variant-options">
-                                                                {% for option in options %}
-                                                                    <div class="variant-option">
-                                                                        <input 
-                                                                            type="radio" 
-                                                                            name="{{ groupName|lower }}-{{ hotspot.product.id }}" 
-                                                                            id="{{ groupName|lower }}-{{ option.id }}-{{ hotspot.product.id }}"
-                                                                            value="{{ option.id }}"
-                                                                            class="variant-radio"
-                                                                            data-group="{{ groupName|lower }}"
-                                                                            data-product-id="{{ hotspot.product.id }}"
-                                                                            data-option-id="{{ option.id }}"
-                                                                            checked
-                                                                        />
-                                                                        <label for="{{ groupName|lower }}-{{ option.id }}-{{ hotspot.product.id }}" class="variant-label-option">
-                                                                            {% if groupName|lower == 'color' or groupName|lower == 'colour' %}
-                                                                                <span class="color-swatch" style="background-color: {{ option.colorHexCode ?? '#ccc' }};"></span>
-                                                                            {% endif %}
-                                                                            {{ option.translated.name }}
-                                                                        </label>
-                                                                    </div>
-                                                                {% endfor %}
-                                                            </div>
+                                                    <div class="variant-group">
+                                                        <label class="variant-label">{{ groupName|upper }}</label>
+                                                        <div class="variant-options">
+                                                            {% for option in options %}
+                                                                <div class="variant-option">
+                                                                    <input 
+                                                                        type="radio" 
+                                                                        name="{{ groupName|lower }}-{{ hotspot.product.id }}" 
+                                                                        id="{{ groupName|lower }}-{{ option.id }}-{{ hotspot.product.id }}"
+                                                                        value="{{ option.id }}"
+                                                                        class="variant-radio"
+                                                                        data-group="{{ groupName|lower }}"
+                                                                        data-product-id="{{ hotspot.product.id }}"
+                                                                        data-option-id="{{ option.id }}"
+                                                                        {% if loop.first %}checked{% endif %}
+                                                                    />
+                                                                    <label for="{{ groupName|lower }}-{{ option.id }}-{{ hotspot.product.id }}" class="variant-label-option">
+                                                                        {% if groupName|lower == 'color' or groupName|lower == 'colour' %}
+                                                                            <span class="color-swatch" style="background-color: {{ option.colorHexCode ?? '#ccc' }};"></span>
+                                                                        {% endif %}
+                                                                        {{ option.translated.name }}
+                                                                    </label>
+                                                                </div>
+                                                            {% endfor %}
                                                         </div>
-                                                    {% endif %}
+                                                    </div>
                                                 {% endfor %}
                                             {% endif %}
                                             
-                                            <!-- Show properties as fallback for sizes -->
+                                            <!-- Show properties as fallback for products without variants -->
                                             {% if hotspot.product.properties %}
                                                 {% set propertyGroups = {} %}
                                                 {% for property in hotspot.product.properties %}
@@ -192,42 +177,43 @@
                                                 {% endfor %}
                                                 
                                                 {% for groupName, properties in propertyGroups %}
-                                                    {% if groupName|lower == 'size' %}
-                                                        <!-- Check if size is not already shown in options -->
-                                                        {% set sizeInOptions = false %}
-                                                        {% if hotspot.product.options %}
-                                                            {% for option in hotspot.product.options %}
-                                                                {% if option.group.translated.name|lower == 'size' %}
-                                                                    {% set sizeInOptions = true %}
-                                                                {% endif %}
-                                                            {% endfor %}
-                                                        {% endif %}
-                                                        
-                                                        {% if not sizeInOptions %}
-                                                            <div class="variant-group">
-                                                                <label class="variant-label">{{ groupName|upper }}</label>
-                                                                <div class="variant-options">
-                                                                    {% for property in properties %}
-                                                                        <div class="variant-option">
-                                                                            <input 
-                                                                                type="radio" 
-                                                                                name="property-{{ groupName|lower }}-{{ hotspot.product.id }}" 
-                                                                                id="property-{{ property.id }}-{{ hotspot.product.id }}"
-                                                                                value="{{ property.id }}"
-                                                                                class="variant-radio"
-                                                                                data-group="{{ groupName|lower }}"
-                                                                                data-product-id="{{ hotspot.product.id }}"
-                                                                                data-option-id="{{ property.id }}"
-                                                                                {% if loop.first %}checked{% endif %}
-                                                                            />
-                                                                            <label for="property-{{ property.id }}-{{ hotspot.product.id }}" class="variant-label-option">
-                                                                                {{ property.translated.name }}
-                                                                            </label>
-                                                                        </div>
-                                                                    {% endfor %}
-                                                                </div>
+                                                    <!-- Check if this group is not already shown in options -->
+                                                    {% set groupInOptions = false %}
+                                                    {% if hotspot.product.options %}
+                                                        {% for option in hotspot.product.options %}
+                                                            {% if option.group.translated.name == groupName %}
+                                                                {% set groupInOptions = true %}
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    {% endif %}
+                                                    
+                                                    {% if not groupInOptions %}
+                                                        <div class="variant-group">
+                                                            <label class="variant-label">{{ groupName|upper }}</label>
+                                                            <div class="variant-options">
+                                                                {% for property in properties %}
+                                                                    <div class="variant-option">
+                                                                        <input 
+                                                                            type="radio" 
+                                                                            name="property-{{ groupName|lower }}-{{ hotspot.product.id }}" 
+                                                                            id="property-{{ property.id }}-{{ hotspot.product.id }}"
+                                                                            value="{{ property.id }}"
+                                                                            class="variant-radio"
+                                                                            data-group="{{ groupName|lower }}"
+                                                                            data-product-id="{{ hotspot.product.id }}"
+                                                                            data-option-id="{{ property.id }}"
+                                                                            {% if loop.first %}checked{% endif %}
+                                                                        />
+                                                                        <label for="property-{{ property.id }}-{{ hotspot.product.id }}" class="variant-label-option">
+                                                                            {% if groupName|lower == 'color' or groupName|lower == 'colour' %}
+                                                                                <span class="color-swatch" style="background-color: {{ property.colorHexCode ?? '#ccc' }};"></span>
+                                                                            {% endif %}
+                                                                            {{ property.translated.name }}
+                                                                        </label>
+                                                                    </div>
+                                                                {% endfor %}
                                                             </div>
-                                                        {% endif %}
+                                                        </div>
                                                     {% endif %}
                                                 {% endfor %}
                                             {% endif %}
@@ -236,10 +222,6 @@
                                     </div>
                                 {% endif %}
                                 
-                                <!-- Size Guide Link -->
-                                <div class="size-guide">
-                                    <a href="#" class="size-guide-link">Size Guide</a>
-                                </div>
                                 
                                 <!-- Individual Add to Cart -->
                                 {% if config.addSingleProduct %}
@@ -247,21 +229,19 @@
                                         <form action="{{ path('frontend.checkout.line-item.add') }}" method="post" class="add-to-cart-form" data-add-to-cart="true">
                                             
                                             <!-- Store variant mapping data for JavaScript -->
-                                            {% if hotspot.product.children and hotspot.product.children|length > 0 %}
+                                            {% if hotspot.variantMappingData and hotspot.variantMappingData|length > 0 %}
                                                 <script type="application/json" class="variant-data" data-product-id="{{ hotspot.product.id }}">
                                                 {
-                                                    "parentId": "{{ hotspot.product.id }}",
+                                                    "parentId": "{{ hotspot.parentProduct.id }}",
                                                     "variants": [
-                                                        {% for child in hotspot.product.children %}
+                                                        {% for variant in hotspot.variantMappingData %}
                                                         {
-                                                            "id": "{{ child.id }}",
-                                                            "name": "{{ child.translated.name }}",
+                                                            "id": "{{ variant.id }}",
+                                                            "name": "{{ variant.name }}",
                                                             "options": [
-                                                                {% if child.options %}
-                                                                    {% for option in child.options %}
-                                                                        "{{ option.id }}"{% if not loop.last %},{% endif %}
-                                                                    {% endfor %}
-                                                                {% endif %}
+                                                                {% for optionId in variant.options %}
+                                                                    "{{ optionId }}"{% if not loop.last %},{% endif %}
+                                                                {% endfor %}
                                                             ]
                                                         }{% if not loop.last %},{% endif %}
                                                         {% endfor %}
@@ -578,6 +558,8 @@
         function debugFormData(button) {
             const form = button.closest('form');
             const formData = new FormData(form);
+            console.log('Submitting form for product:', button.dataset.productId);
+            console.log('Submitting', formData);
             
             console.log('=== FORM DEBUG INFO ===');
             console.log('Form action:', form.action);
@@ -644,6 +626,8 @@
                         return;
                     }
                     
+                    console.log('Variant selection changed for product:', productId);
+                    
                     // Get variant data for this product
                     const variantDataScript = document.querySelector(`.variant-data[data-product-id="${productId}"]`);
                     
@@ -653,36 +637,29 @@
                         const productItem = this.closest('.product-item');
                         const selectedOptions = [];
                         
-                        // Collect all selected options
+                        // Collect all selected options for this product
                         productItem.querySelectorAll('.variant-radio:checked').forEach(selectedRadio => {
-                            selectedOptions.push(selectedRadio.value);
+                            if (selectedRadio.dataset.productId === productId) {
+                                selectedOptions.push(selectedRadio.value);
+                            }
                         });
                         
-                        console.log('Selected options:', selectedOptions);
+                        console.log('Selected options for product', productId, ':', selectedOptions);
                         
                         // Find the variant that matches all selected options
-                        let matchingVariant = null;
-                        for (const variant of variantData.variants) {
-                            // Check if this variant has all the selected options
-                            const hasAllOptions = selectedOptions.every(optionId => 
-                                variant.options.includes(optionId)
-                            );
-                            
-                            if (hasAllOptions && variant.options.length === selectedOptions.length) {
-                                matchingVariant = variant;
-                                break;
-                            }
-                        }
+                        let matchingVariant = findMatchingVariant(variantData.variants, selectedOptions);
                         
                         if (matchingVariant) {
                             console.log('Found matching variant:', matchingVariant);
-                            
-                            // Update form to use the correct variant ID
                             updateFormForVariant(form, matchingVariant.id, selectedOptions);
                         } else {
-                            console.error('No matching variant found for options:', selectedOptions);
-                            // Fallback to first variant
-                            if (variantData.variants.length > 0) {
+                            console.warn('No exact match found, using best match or first variant');
+                            // Fallback: find variant with most matching options
+                            let bestMatch = findBestMatchingVariant(variantData.variants, selectedOptions);
+                            if (bestMatch) {
+                                updateFormForVariant(form, bestMatch.id, selectedOptions);
+                            } else if (variantData.variants.length > 0) {
+                                // Last resort: use first variant
                                 updateFormForVariant(form, variantData.variants[0].id, selectedOptions);
                             }
                         }
@@ -691,13 +668,47 @@
                         const selectedOptions = [];
                         const productItem = this.closest('.product-item');
                         productItem.querySelectorAll('.variant-radio:checked').forEach(selectedRadio => {
-                            selectedOptions.push(selectedRadio.value);
+                            if (selectedRadio.dataset.productId === productId) {
+                                selectedOptions.push(selectedRadio.value);
+                            }
                         });
                         
+                        console.log('Updating simple product options:', selectedOptions);
                         updateFormForVariant(form, productId, selectedOptions);
                     }
                 });
             });
+            
+            function findMatchingVariant(variants, selectedOptions) {
+                return variants.find(variant => {
+                    // Check if this variant has all the selected options
+                    const hasAllOptions = selectedOptions.every(optionId => 
+                        variant.options.includes(optionId)
+                    );
+                    // And check if the variant doesn't have extra options
+                    const noExtraOptions = variant.options.length === selectedOptions.length;
+                    
+                    return hasAllOptions && noExtraOptions;
+                });
+            }
+            
+            function findBestMatchingVariant(variants, selectedOptions) {
+                let bestMatch = null;
+                let maxMatches = 0;
+                
+                variants.forEach(variant => {
+                    const matches = selectedOptions.filter(optionId => 
+                        variant.options.includes(optionId)
+                    ).length;
+                    
+                    if (matches > maxMatches) {
+                        maxMatches = matches;
+                        bestMatch = variant;
+                    }
+                });
+                
+                return bestMatch;
+            }
             
             function updateFormForVariant(form, variantId, selectedOptions) {
                 console.log('Updating form for variant:', variantId, 'with options:', selectedOptions);

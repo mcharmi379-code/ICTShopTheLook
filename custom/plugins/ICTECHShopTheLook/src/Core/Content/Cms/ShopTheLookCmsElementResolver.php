@@ -114,12 +114,32 @@ class ShopTheLookCmsElementResolver extends AbstractCmsElementResolver
                         // Load all variants for this product (or its parent)
                         $allVariants = $this->loadAllVariantsForProduct($productForVariants, $resolverContext);
                         
+                        // Also get variant mapping data for JavaScript
+                        $variantMappingData = [];
+                        if ($productForVariants->getChildren() && $productForVariants->getChildren()->count() > 0) {
+                            foreach ($productForVariants->getChildren() as $child) {
+                                $childOptions = [];
+                                if ($child->getOptions()) {
+                                    foreach ($child->getOptions() as $option) {
+                                        $childOptions[] = $option->getId();
+                                    }
+                                }
+                                $variantMappingData[] = [
+                                    'id' => $child->getId(),
+                                    'name' => $child->getTranslated()['name'] ?? $child->getName(),
+                                    'options' => $childOptions
+                                ];
+                            }
+                        }
+                        
                         $processedHotspots[] = [
                             'id' => $hotspot['id'] ?? uniqid(),
                             'xPosition' => $hotspot['xPosition'] ?? 50,
                             'yPosition' => $hotspot['yPosition'] ?? 50,
                             'product' => $product,
-                            'allVariants' => $allVariants
+                            'allVariants' => $allVariants,
+                            'variantMappingData' => $variantMappingData,
+                            'parentProduct' => $productForVariants
                         ];
                     }
                 }
