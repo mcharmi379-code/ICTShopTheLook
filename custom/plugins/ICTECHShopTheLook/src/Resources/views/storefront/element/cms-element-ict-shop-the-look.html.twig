@@ -3,6 +3,7 @@
     {% set lookImage = config.lookImage %}
     {% set hotspots = config.hotspots %}
     {% set layoutStyle = config.layoutStyle %}
+    {# {{dump(config)}} #}
     <div class="cms-element-ict-shop-the-look">
         <div class="shop-the-look-container">
             
@@ -222,33 +223,35 @@
                                     </div>
                                 {% endif %}
                                 
+
+
                                 
+                                <!-- Store variant mapping data for JavaScript (always needed for add-all) -->
+                                {% if hotspot.variantMappingData and hotspot.variantMappingData|length > 0 %}
+                                    <script type="application/json" class="variant-data" data-product-id="{{ hotspot.product.id }}">
+                                    {
+                                        "parentId": "{{ hotspot.parentProduct.id }}",
+                                        "variants": [
+                                            {% for variant in hotspot.variantMappingData %}
+                                            {
+                                                "id": "{{ variant.id }}",
+                                                "name": "{{ variant.name }}",
+                                                "options": [
+                                                    {% for optionId in variant.options %}
+                                                        "{{ optionId }}"{% if not loop.last %},{% endif %}
+                                                    {% endfor %}
+                                                ]
+                                            }{% if not loop.last %},{% endif %}
+                                            {% endfor %}
+                                        ]
+                                    }
+                                    </script>
+                                {% endif %}
+
                                 <!-- Individual Add to Cart -->
                                 {% if config.addSingleProduct %}
                                     <div class="individual-add-to-cart">
                                         <form action="{{ path('frontend.checkout.line-item.add') }}" method="post" class="add-to-cart-form" data-add-to-cart="true">
-                                            
-                                            <!-- Store variant mapping data for JavaScript -->
-                                            {% if hotspot.variantMappingData and hotspot.variantMappingData|length > 0 %}
-                                                <script type="application/json" class="variant-data" data-product-id="{{ hotspot.product.id }}">
-                                                {
-                                                    "parentId": "{{ hotspot.parentProduct.id }}",
-                                                    "variants": [
-                                                        {% for variant in hotspot.variantMappingData %}
-                                                        {
-                                                            "id": "{{ variant.id }}",
-                                                            "name": "{{ variant.name }}",
-                                                            "options": [
-                                                                {% for optionId in variant.options %}
-                                                                    "{{ optionId }}"{% if not loop.last %},{% endif %}
-                                                                {% endfor %}
-                                                            ]
-                                                        }{% if not loop.last %},{% endif %}
-                                                        {% endfor %}
-                                                    ]
-                                                }
-                                                </script>
-                                            {% endif %}
                                             
                                             <!-- For products with variants, we need to add the specific variant ID, not the parent -->
                                             {% set productToAdd = hotspot.product %}
@@ -305,12 +308,12 @@
                                     {% endif %}
                                 {% endfor %}
                                 
-                                <!-- Redirect parameters to stay on same page -->
+                               
                                 <input type="hidden" name="redirectTo" value="frontend.cms.page">
                                 <input type="hidden" name="redirectParameters" value='{{ {"id": page.cmsPage.id}|json_encode }}'>
                                 
-                                <button type="submit" class="btn btn-primary btn-lg add-all-to-cart" onclick="debugFormData(this)">
-                                    ADD TO CART
+                                <button type="submit" class="btn btn-primary btn-lg add-all-to-cart" onclick="rebuildAddAllForm()">
+                                    ADD TO CART 
                                 </button>
                             </form>
                         </div>
@@ -554,11 +557,123 @@
 
 {% block element_ict_shop_the_look_scripts %}
     <script>
+        // Global function to rebuild form before submission
+        function rebuildAddAllForm() {
+            alert("Rebuilding Add All Form");
+            const addAllForm = document.querySelector('.add-all-form');
+            if (!addAllForm) return;
+            
+            console.log('=== REBUILDING ADD ALL FORM ===');
+            
+            // Remove all existing product inputs
+            addAllForm.querySelectorAll('.product-line-item, .variant-option').forEach(input => {
+                input.remove();
+            });
+            
+            // Get all checked products
+            const checkedProducts = document.querySelectorAll('.product-select-checkbox:checked');
+            
+            checkedProducts.forEach((checkbox, index) => {
+                const productId = checkbox.dataset.productId;
+                const productItem = checkbox.closest('.product-item');
+                
+                console.log(`Processing Product ${index + 1} (${productId})`);
+                
+                // Get selected options
+                const selectedOptions = [];
+                productItem.querySelectorAll('.variant-radio:checked').forEach(radio => {
+                    if (radio.dataset.productId === productId) {
+                        selectedOptions.push(radio.value);
+                        console.log('  Selected:', radio.dataset.optionName, '=', radio.value);
+                    }
+                });
+                
+                // Check for variant data
+                const variantDataScript = document.querySelector(`.variant-data[data-product-id="${productId}"]`);
+                let variantIdToUse = productId;
+                
+                if (variantDataScript && selectedOptions.length > 0) {
+                    const variantData = JSON.parse(variantDataScript.textContent);
+                    console.log('  Available variants:', variantData.variants.length);
+                    
+                    // Find matching variant
+                    const matchingVariant = variantData.variants.find(variant => {
+                        const hasAll = selectedOptions.every(opt => variant.options.includes(opt));
+                        const sameLength = variant.options.length === selectedOptions.length;
+                        return hasAll && sameLength;
+                    });
+                    
+                    if (matchingVariant) {
+                        variantIdToUse = matchingVariant.id;
+                        console.log('  Using variant:', variantIdToUse);
+                    } else {
+                        console.log('  No exact match, using parent:', productId);
+                    }
+                } else {
+                    console.log('  No variant data, using product ID:', productId);
+                }
+                
+                // Add form inputs
+                const inputs = [
+                    { name: `lineItems[${variantIdToUse}][id]`, value: variantIdToUse },
+                    { name: `lineItems[${variantIdToUse}][type]`, value: 'product' },
+                    { name: `lineItems[${variantIdToUse}][referencedId]`, value: variantIdToUse },
+                    { name: `lineItems[${variantIdToUse}][quantity]`, value: '1' },
+                    { name: `lineItems[${variantIdToUse}][stackable]`, value: '1' },
+                    { name: `lineItems[${variantIdToUse}][removable]`, value: '1' }
+                ];
+                
+                inputs.forEach(inputData => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = inputData.name;
+                    input.value = inputData.value;
+                    input.classList.add('product-line-item');
+                    input.setAttribute('data-product-id', productId);
+                    addAllForm.appendChild(input);
+                });
+                
+                // Add options
+                selectedOptions.forEach(optionId => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = `lineItems[${variantIdToUse}][payload][options][${optionId}]`;
+                    input.value = optionId;
+                    input.classList.add('variant-option', 'product-line-item');
+                    input.setAttribute('data-product-id', productId);
+                    addAllForm.appendChild(input);
+                });
+            });
+            
+            console.log('=== FORM REBUILT ===');
+        }
+        
+        // Debug function to check current selections
+        function debugCurrentSelections() {
+            console.log('=== CURRENT SELECTIONS DEBUG ===');
+            document.querySelectorAll('.product-item').forEach((productItem, index) => {
+                const productId = productItem.dataset.productId;
+                console.log(`Product ${index + 1} (${productId}):`);
+                
+                productItem.querySelectorAll('.variant-radio').forEach(radio => {
+                    console.log(`  ${radio.name}: ${radio.value} (${radio.dataset.optionName}) - checked: ${radio.checked}`);
+                });
+            });
+            console.log('=== END CURRENT SELECTIONS DEBUG ===');
+        }
+        
         // Debug function to show form data before submission
         function debugFormData(button) {
             const form = button.closest('form');
             const formData = new FormData(form);
-            console.log('Submitting form for product:', button.dataset.productId);
+            
+            // Get product ID from button or form context
+            let productId = button.dataset.productId;
+            if (!productId && form.classList.contains('add-all-form')) {
+                productId = 'multiple products';
+            }
+            
+            console.log('Submitting form for product:', productId);
             console.log('Submitting', formData);
             
             console.log('=== FORM DEBUG INFO ===');
@@ -592,6 +707,8 @@
                         productItem.classList.add('disabled');
                         if (form) form.style.display = 'none';
                     }
+                    
+                    // Update the add-all form with current selections
                     updateAddAllButton();
                 });
             });
@@ -619,10 +736,11 @@
             document.querySelectorAll('.variant-radio').forEach(radio => {
                 radio.addEventListener('change', function() {
                     const productId = this.dataset.productId;
-                    const form = this.closest('.product-item').querySelector('.add-to-cart-form');
+                    const individualForm = this.closest('.product-item').querySelector('.add-to-cart-form');
+                    const addAllForm = document.querySelector('.add-all-form');
                     
-                    if (!productId || !form) {
-                        console.error('Missing productId or form');
+                    if (!productId) {
+                        console.error('Missing productId');
                         return;
                     }
                     
@@ -651,16 +769,37 @@
                         
                         if (matchingVariant) {
                             console.log('Found matching variant:', matchingVariant);
-                            updateFormForVariant(form, matchingVariant.id, selectedOptions);
+                            // Update individual form
+                            if (individualForm) {
+                                updateFormForVariant(individualForm, matchingVariant.id, selectedOptions);
+                            }
+                            // Update add all form
+                            if (addAllForm) {
+                                updateAddAllFormForProduct(addAllForm, productId, matchingVariant.id, selectedOptions);
+                                // Also refresh the entire add-all form to ensure consistency
+                                updateAddAllButton();
+                            }
                         } else {
                             console.warn('No exact match found, using best match or first variant');
                             // Fallback: find variant with most matching options
                             let bestMatch = findBestMatchingVariant(variantData.variants, selectedOptions);
                             if (bestMatch) {
-                                updateFormForVariant(form, bestMatch.id, selectedOptions);
+                                if (individualForm) {
+                                    updateFormForVariant(individualForm, bestMatch.id, selectedOptions);
+                                }
+                                if (addAllForm) {
+                                    updateAddAllFormForProduct(addAllForm, productId, bestMatch.id, selectedOptions);
+                                    updateAddAllButton();
+                                }
                             } else if (variantData.variants.length > 0) {
                                 // Last resort: use first variant
-                                updateFormForVariant(form, variantData.variants[0].id, selectedOptions);
+                                if (individualForm) {
+                                    updateFormForVariant(individualForm, variantData.variants[0].id, selectedOptions);
+                                }
+                                if (addAllForm) {
+                                    updateAddAllFormForProduct(addAllForm, productId, variantData.variants[0].id, selectedOptions);
+                                    updateAddAllButton();
+                                }
                             }
                         }
                     } else {
@@ -674,64 +813,93 @@
                         });
                         
                         console.log('Updating simple product options:', selectedOptions);
-                        updateFormForVariant(form, productId, selectedOptions);
+                        // Update individual form
+                        if (individualForm) {
+                            updateFormForVariant(individualForm, productId, selectedOptions);
+                        }
+                        // Update add all form
+                        if (addAllForm) {
+                            updateAddAllFormForProduct(addAllForm, productId, productId, selectedOptions);
+                            updateAddAllButton();
+                        }
                     }
                 });
             });
             
             function findMatchingVariant(variants, selectedOptions) {
-                return variants.find(variant => {
+                console.log('Finding exact match for options:', selectedOptions);
+                const match = variants.find(variant => {
+                    console.log('Checking variant:', variant.id, 'with options:', variant.options);
                     // Check if this variant has all the selected options
-                    const hasAllOptions = selectedOptions.every(optionId => 
-                        variant.options.includes(optionId)
-                    );
+                    const hasAllOptions = selectedOptions.every(optionId => {
+                        const hasOption = variant.options.includes(optionId);
+                        console.log('  Option', optionId, 'in variant:', hasOption);
+                        return hasOption;
+                    });
                     // And check if the variant doesn't have extra options
                     const noExtraOptions = variant.options.length === selectedOptions.length;
                     
-                    return hasAllOptions && noExtraOptions;
+                    console.log('  Has all options:', hasAllOptions, 'No extra options:', noExtraOptions);
+                    const isMatch = hasAllOptions && noExtraOptions;
+                    console.log('  Is exact match:', isMatch);
+                    return isMatch;
                 });
+                console.log('Exact match result:', match);
+                return match;
             }
             
             function findBestMatchingVariant(variants, selectedOptions) {
+                console.log('Finding best match for options:', selectedOptions);
                 let bestMatch = null;
                 let maxMatches = 0;
                 
                 variants.forEach(variant => {
-                    const matches = selectedOptions.filter(optionId => 
-                        variant.options.includes(optionId)
-                    ).length;
+                    const matches = selectedOptions.filter(optionId => {
+                        const hasOption = variant.options.includes(optionId);
+                        console.log('  Variant', variant.id, 'has option', optionId, ':', hasOption);
+                        return hasOption;
+                    }).length;
+                    
+                    console.log('  Variant', variant.id, 'matches', matches, 'out of', selectedOptions.length, 'options');
                     
                     if (matches > maxMatches) {
                         maxMatches = matches;
                         bestMatch = variant;
+                        console.log('  New best match:', variant.id, 'with', matches, 'matches');
                     }
                 });
                 
+                console.log('Best match result:', bestMatch, 'with', maxMatches, 'matches');
                 return bestMatch;
             }
             
             function updateFormForVariant(form, variantId, selectedOptions) {
-                console.log('Updating form for variant:', variantId, 'with options:', selectedOptions);
+                console.log('Updating individual form for variant:', variantId, 'with options:', selectedOptions);
                 
-                // Update all form inputs to use the correct variant ID
+                // Remove all existing lineItems inputs
                 form.querySelectorAll('input[name*="lineItems["]').forEach(input => {
-                    const name = input.name;
-                    // Replace the product ID in the input name
-                    const newName = name.replace(/lineItems\[[^\]]+\]/, `lineItems[${variantId}]`);
-                    input.name = newName;
-                    
-                    // Update value for id and referencedId inputs
-                    if (name.includes('[id]') || name.includes('[referencedId]')) {
-                        input.value = variantId;
-                    }
-                });
-                
-                // Remove existing variant option inputs
-                form.querySelectorAll('input.variant-option, input.default-option').forEach(input => {
                     input.remove();
                 });
                 
-                // Add new option inputs for selected variants
+                // Create complete new set of inputs for the variant
+                const inputs = [
+                    { name: `lineItems[${variantId}][id]`, value: variantId },
+                    { name: `lineItems[${variantId}][type]`, value: 'product' },
+                    { name: `lineItems[${variantId}][referencedId]`, value: variantId },
+                    { name: `lineItems[${variantId}][quantity]`, value: '1' },
+                    { name: `lineItems[${variantId}][stackable]`, value: '1' },
+                    { name: `lineItems[${variantId}][removable]`, value: '1' }
+                ];
+                
+                inputs.forEach(inputData => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = inputData.name;
+                    input.value = inputData.value;
+                    form.appendChild(input);
+                });
+                
+                // Add option inputs for selected variants
                 selectedOptions.forEach(optionId => {
                     const optionInput = document.createElement('input');
                     optionInput.type = 'hidden';
@@ -741,57 +909,246 @@
                     form.appendChild(optionInput);
                 });
                 
-                console.log('Form updated successfully');
+                console.log('Individual form updated successfully');
+            }
+            
+            function updateAddAllFormForProduct(addAllForm, originalProductId, variantId, selectedOptions) {
+                console.log('Updating add-all form for product:', originalProductId, 'to variant:', variantId, 'with options:', selectedOptions);
+                
+                // Remove all existing inputs for this product (both original and variant)
+                addAllForm.querySelectorAll(`input[data-product-id="${originalProductId}"]`).forEach(input => {
+                    input.remove();
+                });
+                addAllForm.querySelectorAll(`input[name*="[${originalProductId}]"]`).forEach(input => {
+                    input.remove();
+                });
+                addAllForm.querySelectorAll(`input[name*="[${variantId}]"]`).forEach(input => {
+                    input.remove();
+                });
+                
+                // Create complete new set of inputs for the variant
+                const inputs = [
+                    { name: `lineItems[${variantId}][id]`, value: variantId },
+                    { name: `lineItems[${variantId}][type]`, value: 'product' },
+                    { name: `lineItems[${variantId}][referencedId]`, value: variantId },
+                    { name: `lineItems[${variantId}][quantity]`, value: '1' },
+                    { name: `lineItems[${variantId}][stackable]`, value: '1' },
+                    { name: `lineItems[${variantId}][removable]`, value: '1' }
+                ];
+                
+                inputs.forEach(inputData => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = inputData.name;
+                    input.value = inputData.value;
+                    input.classList.add('product-line-item');
+                    input.setAttribute('data-product-id', originalProductId);
+                    addAllForm.appendChild(input);
+                });
+                
+                // Add option inputs for selected variants
+                selectedOptions.forEach(optionId => {
+                    const optionInput = document.createElement('input');
+                    optionInput.type = 'hidden';
+                    optionInput.name = `lineItems[${variantId}][payload][options][${optionId}]`;
+                    optionInput.value = optionId;
+                    optionInput.classList.add('variant-option', 'product-line-item');
+                    optionInput.setAttribute('data-product-id', originalProductId);
+                    addAllForm.appendChild(optionInput);
+                });
+                
+                console.log('Add-all form updated for product', originalProductId);
             }
             
             function updateAddAllButton() {
-                const checkedProducts = document.querySelectorAll('.product-select-checkbox:checked').length;
+                const checkedProducts = document.querySelectorAll('.product-select-checkbox:checked');
                 const addAllButton = document.querySelector('.add-all-to-cart');
                 const addAllForm = document.querySelector('.add-all-form');
                 
+                console.log('=== UPDATE ADD ALL BUTTON DEBUG ===');
+                console.log('Checked products count:', checkedProducts.length);
+                
                 if (addAllButton && addAllForm) {
-                    if (checkedProducts === 0) {
+                    if (checkedProducts.length === 0) {
                         addAllButton.disabled = true;
                         addAllButton.textContent = 'SELECT PRODUCTS';
                     } else {
                         addAllButton.disabled = false;
-                        addAllButton.textContent = `ADD ${checkedProducts} TO CART`;
+                        addAllButton.textContent = `ADD ${checkedProducts.length} TO CART`;
                         
-                        // Disable inputs for unchecked products
-                        const uncheckedProducts = document.querySelectorAll('.product-select-checkbox:not(:checked)');
-                        uncheckedProducts.forEach(checkbox => {
-                            const productId = checkbox.dataset.productId;
-                            addAllForm.querySelectorAll(`.product-line-item[data-product-id="${productId}"]`).forEach(input => {
-                                input.disabled = true;
-                            });
+                        // Remove all existing product inputs from add-all form
+                        addAllForm.querySelectorAll('.product-line-item, .variant-option').forEach(input => {
+                            input.remove();
                         });
                         
-                        // Enable inputs for checked products
-                        const checkedProductsInputs = document.querySelectorAll('.product-select-checkbox:checked');
-                        checkedProductsInputs.forEach(checkbox => {
+                        console.log('Processing checked products...');
+                        
+                        // Add inputs only for checked products with their current variants
+                        checkedProducts.forEach((checkbox, index) => {
                             const productId = checkbox.dataset.productId;
-                            addAllForm.querySelectorAll(`.product-line-item[data-product-id="${productId}"]`).forEach(input => {
-                                input.disabled = false;
+                            const productItem = checkbox.closest('.product-item');
+                            
+                            console.log(`\n--- Processing Product ${index + 1} ---`);
+                            console.log('Product ID:', productId);
+                            
+                            // Get currently selected options for this product
+                            const selectedOptions = [];
+                            productItem.querySelectorAll('.variant-radio:checked').forEach(radio => {
+                                if (radio.dataset.productId === productId) {
+                                    selectedOptions.push(radio.value);
+                                    console.log('Selected option:', radio.value, '(', radio.dataset.optionName, ')');
+                                }
                             });
+                            
+                            console.log('All selected options for product:', selectedOptions);
+                            
+                            // Check if this product has variant data
+                            const variantDataScript = document.querySelector(`.variant-data[data-product-id="${productId}"]`);
+                            
+                            if (variantDataScript && selectedOptions.length > 0) {
+                                console.log('Product has variant data, finding matching variant...');
+                                // This product has variants - find the correct one
+                                const variantData = JSON.parse(variantDataScript.textContent);
+                                console.log('Available variants:', variantData.variants);
+                                
+                                let matchingVariant = findMatchingVariant(variantData.variants, selectedOptions);
+                                
+                                if (!matchingVariant) {
+                                    console.log('No exact match, finding best match...');
+                                    matchingVariant = findBestMatchingVariant(variantData.variants, selectedOptions);
+                                }
+                                
+                                if (matchingVariant) {
+                                    console.log('Using variant:', matchingVariant);
+                                    addProductToAddAllForm(addAllForm, productId, matchingVariant.id, selectedOptions);
+                                } else {
+                                    console.log('No matching variant found, using parent product');
+                                    addProductToAddAllForm(addAllForm, productId, productId, selectedOptions);
+                                }
+                            } else {
+                                console.log('Product without variants or no options selected');
+                                // Product without variants or with simple options
+                                addProductToAddAllForm(addAllForm, productId, productId, selectedOptions);
+                            }
+                        });
+                        
+                        console.log('=== FINAL FORM STATE ===');
+                        addAllForm.querySelectorAll('input[name*="lineItems"]').forEach(input => {
+                            console.log('Form input:', input.name, '=', input.value);
                         });
                     }
                 }
+                console.log('=== END UPDATE ADD ALL BUTTON DEBUG ===\n');
+            }
+            
+            function addProductToAddAllForm(addAllForm, originalProductId, variantId, selectedOptions) {
+                console.log('=== ADD PRODUCT TO FORM DEBUG ===');
+                console.log('Original Product ID:', originalProductId);
+                console.log('Variant ID to use:', variantId);
+                console.log('Selected Options:', selectedOptions);
+                
+                // Create complete set of inputs for this product/variant
+                const inputs = [
+                    { name: `lineItems[${variantId}][id]`, value: variantId },
+                    { name: `lineItems[${variantId}][type]`, value: 'product' },
+                    { name: `lineItems[${variantId}][referencedId]`, value: variantId },
+                    { name: `lineItems[${variantId}][quantity]`, value: '1' },
+                    { name: `lineItems[${variantId}][stackable]`, value: '1' },
+                    { name: `lineItems[${variantId}][removable]`, value: '1' }
+                ];
+                
+                console.log('Creating inputs:', inputs);
+                
+                inputs.forEach(inputData => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = inputData.name;
+                    input.value = inputData.value;
+                    input.classList.add('product-line-item');
+                    input.setAttribute('data-product-id', originalProductId);
+                    addAllForm.appendChild(input);
+                    console.log('Added input:', inputData.name, '=', inputData.value);
+                });
+                
+                // Add option inputs for selected variants
+                selectedOptions.forEach(optionId => {
+                    const optionInput = document.createElement('input');
+                    optionInput.type = 'hidden';
+                    optionInput.name = `lineItems[${variantId}][payload][options][${optionId}]`;
+                    optionInput.value = optionId;
+                    optionInput.classList.add('variant-option', 'product-line-item');
+                    optionInput.setAttribute('data-product-id', originalProductId);
+                    addAllForm.appendChild(optionInput);
+                    console.log('Added option input:', optionInput.name, '=', optionId);
+                });
+                
+                console.log('=== END ADD PRODUCT DEBUG ===');
             }
             
             // Initialize forms with correct variant data on page load
             document.querySelectorAll('.product-item').forEach(productItem => {
-                const form = productItem.querySelector('.add-to-cart-form');
                 const productId = productItem.dataset.productId;
                 
-                if (form && productId) {
-                    // Trigger variant selection for initially checked options
-                    const checkedRadios = productItem.querySelectorAll('.variant-radio:checked');
-                    if (checkedRadios.length > 0) {
-                        // Trigger change event on first checked radio to initialize form
-                        checkedRadios[0].dispatchEvent(new Event('change'));
-                    }
+                if (productId) {
+                    // Initialize with currently selected variants
+                    initializeProductVariants(productItem, productId);
                 }
             });
+            
+            function initializeProductVariants(productItem, productId) {
+                const individualForm = productItem.querySelector('.add-to-cart-form');
+                const addAllForm = document.querySelector('.add-all-form');
+                
+                // Get currently selected options for this product
+                const selectedOptions = [];
+                productItem.querySelectorAll('.variant-radio:checked').forEach(radio => {
+                    if (radio.dataset.productId === productId) {
+                        selectedOptions.push(radio.value);
+                    }
+                });
+                
+                console.log('Initializing product', productId, 'with options:', selectedOptions);
+                
+                // Check if this product has variant data
+                const variantDataScript = document.querySelector(`.variant-data[data-product-id="${productId}"]`);
+                
+                if (variantDataScript && selectedOptions.length > 0) {
+                    // This product has variants - find the correct one
+                    const variantData = JSON.parse(variantDataScript.textContent);
+                    let matchingVariant = findMatchingVariant(variantData.variants, selectedOptions);
+                    
+                    if (!matchingVariant) {
+                        matchingVariant = findBestMatchingVariant(variantData.variants, selectedOptions);
+                    }
+                    
+                    if (matchingVariant) {
+                        console.log('Found initial variant for product', productId, ':', matchingVariant);
+                        // Update individual form
+                        if (individualForm) {
+                            updateFormForVariant(individualForm, matchingVariant.id, selectedOptions);
+                        }
+                        // Update add all form
+                        if (addAllForm) {
+                            updateAddAllFormForProduct(addAllForm, productId, matchingVariant.id, selectedOptions);
+                        }
+                    }
+                } else if (selectedOptions.length > 0) {
+                    // Product without variants but has options (properties)
+                    console.log('Initializing simple product', productId, 'with options:', selectedOptions);
+                    if (individualForm) {
+                        updateFormForVariant(individualForm, productId, selectedOptions);
+                    }
+                    if (addAllForm) {
+                        updateAddAllFormForProduct(addAllForm, productId, productId, selectedOptions);
+                    }
+                } else {
+                    // Product without any variants or options
+                    console.log('Initializing simple product', productId, 'without options');
+                    if (addAllForm) {
+                        updateAddAllFormForProduct(addAllForm, productId, productId, []);
+                    }
+                }
+            }
             
             // Initialize
             updateAddAllButton();
