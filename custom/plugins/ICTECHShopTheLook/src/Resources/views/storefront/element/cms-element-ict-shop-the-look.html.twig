@@ -3,11 +3,6 @@
     {% set lookImage = config.lookImage %}
     {% set hotspots = config.hotspots %}
     {% set layoutStyle = config.layoutStyle %}
-
-    {{dump("Config Data:", config)}}
-    {{dump("Look Image:", lookImage)}}
-    {{dump("Hotspots:", hotspots)}}
-    {{dump("Layout Style:", layoutStyle)}}
     <div class="cms-element-ict-shop-the-look">
         <div class="shop-the-look-container">
             
@@ -95,11 +90,7 @@
                                 <!-- Product Variants Section -->
                                 {% if config.showVariantSwitch %}
                                     <div class="product-variants">
-                                        {# Debug: Show what data we have #}
-                                        {# {{ dump('Product ID:', hotspot.product.id) }}
-                                        {{ dump('All variants data:', hotspot.allVariants) }}
-                                        {{ dump('Product options:', hotspot.product.options) }}
-                                        {{ dump('Product properties:', hotspot.product.properties) }} #}
+                                     
                                         
                                         <!-- Show all available variants from allVariants data -->
                                         {% if hotspot.allVariants %}
@@ -254,38 +245,6 @@
                                 {% if config.addSingleProduct %}
                                     <div class="individual-add-to-cart">
                                         <form action="{{ path('frontend.checkout.line-item.add') }}" method="post" class="add-to-cart-form" data-add-to-cart="true">
-                                            <!-- Debug: Show product info -->
-                                            <div class="debug-info" style="background: #f0f0f0; padding: 10px; margin: 10px 0; font-size: 11px; border-radius: 4px;">
-                                                <strong>Debug Info:</strong><br>
-                                                Original Product ID: {{ hotspot.product.id }}<br>
-                                                Product Name: {{ hotspot.product.translated.name }}<br>
-                                                Product Type: {{ hotspot.product.type ?? 'undefined' }}<br>
-                                                Has Parent: {{ hotspot.product.parentId ? 'Yes (' ~ hotspot.product.parentId ~ ')' : 'No' }}<br>
-                                                Child Count: {{ hotspot.product.childCount ?? 0 }}<br>
-                                                Available: {{ hotspot.product.available ? 'Yes' : 'No' }}<br>
-                                                {% set productToAdd = hotspot.product %}
-                                                {% if hotspot.product.childCount > 0 and hotspot.product.children and hotspot.product.children|length > 0 %}
-                                                    {% set productToAdd = hotspot.product.children.first %}
-                                                    <strong style="color: red;">Using Child Variant ID: {{ productToAdd.id }}</strong><br>
-                                                    Child Variant Name: {{ productToAdd.translated.name }}<br>
-                                                {% else %}
-                                                    <strong style="color: green;">Using Original Product ID: {{ productToAdd.id }}</strong><br>
-                                                {% endif %}
-                                                {% if hotspot.product.options %}
-                                                    Current Options: 
-                                                    {% for option in hotspot.product.options %}
-                                                        {{ option.group.name }}: {{ option.name }}{% if not loop.last %}, {% endif %}
-                                                    {% endfor %}<br>
-                                                {% endif %}
-                                                {% if hotspot.allVariants %}
-                                                    All Variants: {{ hotspot.allVariants|keys|join(', ') }}<br>
-                                                    {% for groupName, options in hotspot.allVariants %}
-                                                        {{ groupName }}: {% for optionId, option in options %}{{ option.name }}{% if not loop.last %}, {% endif %}{% endfor %}<br>
-                                                    {% endfor %}
-                                                {% else %}
-                                                    <span style="color: red;">No allVariants data found!</span><br>
-                                                {% endif %}
-                                            </div>
                                             
                                             <!-- Store variant mapping data for JavaScript -->
                                             {% if hotspot.product.children and hotspot.product.children|length > 0 %}

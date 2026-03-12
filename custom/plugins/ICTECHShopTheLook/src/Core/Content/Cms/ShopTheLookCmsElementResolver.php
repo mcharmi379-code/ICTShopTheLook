@@ -92,8 +92,27 @@ class ShopTheLookCmsElementResolver extends AbstractCmsElementResolver
                 if (!empty($hotspot['productId'])) {
                     $product = $products->get($hotspot['productId']);
                     if ($product) {
-                        // Load all variants for this product to get all available options
-                        $allVariants = $this->loadAllVariantsForProduct($product->getId(), $resolverContext);
+                        // For variant products, we need to get the parent product to load all variants
+                        $productForVariants = $product;
+                        
+                        // If this is a child variant, load the parent separately
+                        if ($product->getParentId()) {
+                            $parentCriteria = new Criteria([$product->getParentId()]);
+                            $parentCriteria->addAssociation('children');
+                            $parentCriteria->addAssociation('children.options');
+                            $parentCriteria->addAssociation('children.options.group');
+                            $parentCriteria->addAssociation('children.cover');
+                            
+                            $parentResult = $this->productRepository->search($parentCriteria, $resolverContext->getSalesChannelContext());
+                            $parentProduct = $parentResult->first();
+                            
+                            if ($parentProduct) {
+                                $productForVariants = $parentProduct;
+                            }
+                        }
+                        
+                        // Load all variants for this product (or its parent)
+                        $allVariants = $this->loadAllVariantsForProduct($productForVariants, $resolverContext);
                         
                         $processedHotspots[] = [
                             'id' => $hotspot['id'] ?? uniqid(),
@@ -123,58 +142,33 @@ class ShopTheLookCmsElementResolver extends AbstractCmsElementResolver
         $slot->setData($data);
     }
     
-    private function loadAllVariantsForProduct(string $productId, ResolverContext $resolverContext): array
+    private function loadAllVariantsForProduct($product, ResolverContext $resolverContext): array
     {
         $allOptions = [];
         
         try {
-            // First, get the main product to understand its structure
-            $mainProductCriteria = new Criteria([$productId]);
-            $mainProductCriteria->addAssociation('options');
-            $mainProductCriteria->addAssociation('options.group');
-            $mainProductCriteria->addAssociation('properties');
-            $mainProductCriteria->addAssociation('properties.group');
-            $mainProductCriteria->addAssociation('children');
-            $mainProductCriteria->addAssociation('parent');
-            
-            $mainProduct = $this->productRepository->search($mainProductCriteria, $resolverContext->getSalesChannelContext())->first();
-            
-            if (!$mainProduct) {
-                return [];
+            // If this product has children, collect options from all children
+            if ($product->getChildren() && $product->getChildren()->count() > 0) {
+                foreach ($product->getChildren() as $child) {
+                    if ($child->getOptions()) {
+                        foreach ($child->getOptions() as $option) {
+                            $group = $option->getGroup();
+                            if ($group) {
+                                $groupName = $group->getName();
+                                if (!isset($allOptions[$groupName])) {
+                                    $allOptions[$groupName] = [];
+                                }
+                                $allOptions[$groupName][$option->getId()] = $option;
+                            }
+                        }
+                    }
+                }
             }
-            
-            // Determine the parent product ID
-            $parentProductId = $mainProduct->getParentId() ?? $mainProduct->getId();
-            
-            // Load ALL variants of the parent product (including the main product if it's a parent)
-            $variantsCriteria = new Criteria();
-            
-            // If this product is a variant (has parent), get all siblings
-            if ($mainProduct->getParentId()) {
-                $variantsCriteria->addFilter(new EqualsAnyFilter('parentId', [$mainProduct->getParentId()]));
-            } 
-            // If this product is a parent (has children), get all children
-            elseif ($mainProduct->getChildCount() > 0) {
-                $variantsCriteria->addFilter(new EqualsAnyFilter('parentId', [$mainProduct->getId()]));
-            }
-            // If it's a simple product, just use its own data
+            // If no children, use the product's own options and properties
             else {
-                $variantsCriteria = new Criteria([$productId]);
-            }
-            
-            $variantsCriteria->addAssociation('options');
-            $variantsCriteria->addAssociation('options.group');
-            $variantsCriteria->addAssociation('properties');
-            $variantsCriteria->addAssociation('properties.group');
-            $variantsCriteria->addAssociation('cover');
-            
-            $variants = $this->productRepository->search($variantsCriteria, $resolverContext->getSalesChannelContext());
-            
-            // Collect options from ALL variants
-            foreach ($variants as $variant) {
-                // Get variant options (like color, size from variants)
-                if ($variant->getOptions()) {
-                    foreach ($variant->getOptions() as $option) {
+                // Get options from the product
+                if ($product->getOptions()) {
+                    foreach ($product->getOptions() as $option) {
                         $group = $option->getGroup();
                         if ($group) {
                             $groupName = $group->getName();
@@ -186,40 +180,9 @@ class ShopTheLookCmsElementResolver extends AbstractCmsElementResolver
                     }
                 }
                 
-                // Get properties (for products without variants but with properties)
-                if ($variant->getProperties()) {
-                    foreach ($variant->getProperties() as $property) {
-                        $group = $property->getGroup();
-                        if ($group) {
-                            $groupName = $group->getName();
-                            if (!isset($allOptions[$groupName])) {
-                                $allOptions[$groupName] = [];
-                            }
-                            $allOptions[$groupName][$property->getId()] = $property;
-                        }
-                    }
-                }
-            }
-            
-            // If we still don't have options, try to get them from the main product
-            if (empty($allOptions)) {
-                // Get options from main product
-                if ($mainProduct->getOptions()) {
-                    foreach ($mainProduct->getOptions() as $option) {
-                        $group = $option->getGroup();
-                        if ($group) {
-                            $groupName = $group->getName();
-                            if (!isset($allOptions[$groupName])) {
-                                $allOptions[$groupName] = [];
-                            }
-                            $allOptions[$groupName][$option->getId()] = $option;
-                        }
-                    }
-                }
-                
-                // Get properties from main product
-                if ($mainProduct->getProperties()) {
-                    foreach ($mainProduct->getProperties() as $property) {
+                // Get properties from the product
+                if ($product->getProperties()) {
+                    foreach ($product->getProperties() as $property) {
                         $group = $property->getGroup();
                         if ($group) {
                             $groupName = $group->getName();
