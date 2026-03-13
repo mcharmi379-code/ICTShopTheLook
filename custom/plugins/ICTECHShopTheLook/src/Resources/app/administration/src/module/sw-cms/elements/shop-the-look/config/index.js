@@ -62,6 +62,8 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
         productCriteria() {
             const criteria = new Criteria(1, 25);
             criteria.addAssociation('cover');
+            // Only show parent products (not variants)
+            criteria.addFilter(Criteria.equals('parentId', null));
             return criteria;
         },
 
@@ -100,6 +102,13 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
     },
 
     methods: {
+        onElementUpdate() {
+            console.log('=== ELEMENT UPDATE TRIGGERED ===');
+            console.log('Current hotspots:', JSON.stringify(this.hotspots));
+            console.log('Element config:', JSON.stringify(this.element.config));
+            this.$emit('element-update', this.element);
+        },
+
         cleanupDimensionConfig() {
             const imageDimension = this.element.config.imageDimension?.value;
             
