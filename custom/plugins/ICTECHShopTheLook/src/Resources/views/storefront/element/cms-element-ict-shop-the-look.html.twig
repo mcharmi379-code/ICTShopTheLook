@@ -820,11 +820,9 @@
             
             
             for (let [key, value] of formData.entries()) {
-                console.log(`  ${key}: ${value}`);
             }
             
             form.querySelectorAll('input').forEach(input => {
-                console.log(`  ${input.name}: ${input.value} (disabled: ${input.disabled})`);
             });
         }
         
@@ -982,18 +980,14 @@
                     // Check if this variant has all the selected options
                     const hasAllOptions = selectedOptions.every(optionId => {
                         const hasOption = variant.options.includes(optionId);
-                        console.log('  Option', optionId, 'in variant:', hasOption);
                         return hasOption;
                     });
                     // And check if the variant doesn't have extra options
                     const noExtraOptions = variant.options.length === selectedOptions.length;
                     
-                    console.log('  Has all options:', hasAllOptions, 'No extra options:', noExtraOptions);
                     const isMatch = hasAllOptions && noExtraOptions;
-                    console.log('  Is exact match:', isMatch);
                     return isMatch;
                 });
-                console.log('Exact match result:', match);
                 return match;
             }
             
