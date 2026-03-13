@@ -719,7 +719,6 @@
             const addAllForm = document.querySelector('.add-all-form');
             if (!addAllForm) return;
             
-            console.log('=== REBUILDING ADD ALL FORM ===');
             
             // Remove all existing product inputs
             addAllForm.querySelectorAll('.product-line-item, .variant-option').forEach(input => {
@@ -733,14 +732,12 @@
                 const productId = checkbox.dataset.productId;
                 const productItem = checkbox.closest('.product-item');
                 
-                console.log(`Processing Product ${index + 1} (${productId})`);
                 
                 // Get selected options
                 const selectedOptions = [];
                 productItem.querySelectorAll('.variant-radio:checked').forEach(radio => {
                     if (radio.dataset.productId === productId) {
                         selectedOptions.push(radio.value);
-                        console.log('  Selected:', radio.dataset.optionName, '=', radio.value);
                     }
                 });
                 
@@ -750,7 +747,6 @@
                 
                 if (variantDataScript && selectedOptions.length > 0) {
                     const variantData = JSON.parse(variantDataScript.textContent);
-                    console.log('  Available variants:', variantData.variants.length);
                     
                     // Find matching variant
                     const matchingVariant = variantData.variants.find(variant => {
@@ -761,12 +757,9 @@
                     
                     if (matchingVariant) {
                         variantIdToUse = matchingVariant.id;
-                        console.log('  Using variant:', variantIdToUse);
                     } else {
-                        console.log('  No exact match, using parent:', productId);
                     }
                 } else {
-                    console.log('  No variant data, using product ID:', productId);
                 }
                 
                 // Add form inputs
@@ -801,21 +794,17 @@
                 });
             });
             
-            console.log('=== FORM REBUILT ===');
         }
         
         // Debug function to check current selections
         function debugCurrentSelections() {
-            console.log('=== CURRENT SELECTIONS DEBUG ===');
             document.querySelectorAll('.product-item').forEach((productItem, index) => {
                 const productId = productItem.dataset.productId;
-                console.log(`Product ${index + 1} (${productId}):`);
                 
                 productItem.querySelectorAll('.variant-radio').forEach(radio => {
                     console.log(`  ${radio.name}: ${radio.value} (${radio.dataset.optionName}) - checked: ${radio.checked}`);
                 });
             });
-            console.log('=== END CURRENT SELECTIONS DEBUG ===');
         }
         
         // Debug function to show form data before submission
@@ -829,23 +818,14 @@
                 productId = 'multiple products';
             }
             
-            console.log('Submitting form for product:', productId);
-            console.log('Submitting', formData);
-            
-            console.log('=== FORM DEBUG INFO ===');
-            console.log('Form action:', form.action);
-            console.log('Form method:', form.method);
-            console.log('Form data:');
             
             for (let [key, value] of formData.entries()) {
                 console.log(`  ${key}: ${value}`);
             }
             
-            console.log('All form inputs:');
             form.querySelectorAll('input').forEach(input => {
                 console.log(`  ${input.name}: ${input.value} (disabled: ${input.disabled})`);
             });
-            console.log('=== END DEBUG INFO ===');
         }
         
         document.addEventListener('DOMContentLoaded', function() {
@@ -919,7 +899,6 @@
                         return;
                     }
                     
-                    console.log('Variant selection changed for product:', productId);
                     
                     // Get variant data for this product
                     const variantDataScript = document.querySelector(`.variant-data[data-product-id="${productId}"]`);
@@ -937,13 +916,11 @@
                             }
                         });
                         
-                        console.log('Selected options for product', productId, ':', selectedOptions);
                         
                         // Find the variant that matches all selected options
                         let matchingVariant = findMatchingVariant(variantData.variants, selectedOptions);
                         
                         if (matchingVariant) {
-                            console.log('Found matching variant:', matchingVariant);
                             // Update individual form
                             if (individualForm) {
                                 updateFormForVariant(individualForm, matchingVariant.id, selectedOptions);
@@ -987,7 +964,6 @@
                             }
                         });
                         
-                        console.log('Updating simple product options:', selectedOptions);
                         // Update individual form
                         if (individualForm) {
                             updateFormForVariant(individualForm, productId, selectedOptions);
@@ -1002,9 +978,7 @@
             });
             
             function findMatchingVariant(variants, selectedOptions) {
-                console.log('Finding exact match for options:', selectedOptions);
                 const match = variants.find(variant => {
-                    console.log('Checking variant:', variant.id, 'with options:', variant.options);
                     // Check if this variant has all the selected options
                     const hasAllOptions = selectedOptions.every(optionId => {
                         const hasOption = variant.options.includes(optionId);
@@ -1024,32 +998,25 @@
             }
             
             function findBestMatchingVariant(variants, selectedOptions) {
-                console.log('Finding best match for options:', selectedOptions);
                 let bestMatch = null;
                 let maxMatches = 0;
                 
                 variants.forEach(variant => {
                     const matches = selectedOptions.filter(optionId => {
                         const hasOption = variant.options.includes(optionId);
-                        console.log('  Variant', variant.id, 'has option', optionId, ':', hasOption);
                         return hasOption;
                     }).length;
-                    
-                    console.log('  Variant', variant.id, 'matches', matches, 'out of', selectedOptions.length, 'options');
                     
                     if (matches > maxMatches) {
                         maxMatches = matches;
                         bestMatch = variant;
-                        console.log('  New best match:', variant.id, 'with', matches, 'matches');
                     }
                 });
                 
-                console.log('Best match result:', bestMatch, 'with', maxMatches, 'matches');
                 return bestMatch;
             }
             
             function updateFormForVariant(form, variantId, selectedOptions) {
-                console.log('Updating individual form for variant:', variantId, 'with options:', selectedOptions);
                 
                 // Remove all existing lineItems inputs
                 form.querySelectorAll('input[name*="lineItems["]').forEach(input => {
@@ -1084,11 +1051,9 @@
                     form.appendChild(optionInput);
                 });
                 
-                console.log('Individual form updated successfully');
             }
             
             function updateAddAllFormForProduct(addAllForm, originalProductId, variantId, selectedOptions) {
-                console.log('Updating add-all form for product:', originalProductId, 'to variant:', variantId, 'with options:', selectedOptions);
                 
                 // Remove all existing inputs for this product (both original and variant)
                 addAllForm.querySelectorAll(`input[data-product-id="${originalProductId}"]`).forEach(input => {
@@ -1132,7 +1097,6 @@
                     addAllForm.appendChild(optionInput);
                 });
                 
-                console.log('Add-all form updated for product', originalProductId);
             }
             
             function updateAddAllButton() {
@@ -1140,8 +1104,6 @@
                 const addAllButton = document.querySelector('.add-all-to-cart');
                 const addAllForm = document.querySelector('.add-all-form');
                 
-                console.log('=== UPDATE ADD ALL BUTTON DEBUG ===');
-                console.log('Checked products count:', checkedProducts.length);
                 
                 if (addAllButton && addAllForm) {
                     if (checkedProducts.length === 0) {
@@ -1156,71 +1118,54 @@
                             input.remove();
                         });
                         
-                        console.log('Processing checked products...');
-                        
                         // Add inputs only for checked products with their current variants
                         checkedProducts.forEach((checkbox, index) => {
                             const productId = checkbox.dataset.productId;
                             const productItem = checkbox.closest('.product-item');
-                            
-                            console.log(`\n--- Processing Product ${index + 1} ---`);
-                            console.log('Product ID:', productId);
+                        
                             
                             // Get currently selected options for this product
                             const selectedOptions = [];
                             productItem.querySelectorAll('.variant-radio:checked').forEach(radio => {
                                 if (radio.dataset.productId === productId) {
                                     selectedOptions.push(radio.value);
-                                    console.log('Selected option:', radio.value, '(', radio.dataset.optionName, ')');
                                 }
                             });
                             
-                            console.log('All selected options for product:', selectedOptions);
                             
                             // Check if this product has variant data
                             const variantDataScript = document.querySelector(`.variant-data[data-product-id="${productId}"]`);
                             
                             if (variantDataScript && selectedOptions.length > 0) {
-                                console.log('Product has variant data, finding matching variant...');
                                 // This product has variants - find the correct one
                                 const variantData = JSON.parse(variantDataScript.textContent);
-                                console.log('Available variants:', variantData.variants);
                                 
                                 let matchingVariant = findMatchingVariant(variantData.variants, selectedOptions);
                                 
                                 if (!matchingVariant) {
-                                    console.log('No exact match, finding best match...');
                                     matchingVariant = findBestMatchingVariant(variantData.variants, selectedOptions);
                                 }
                                 
                                 if (matchingVariant) {
-                                    console.log('Using variant:', matchingVariant);
                                     addProductToAddAllForm(addAllForm, productId, matchingVariant.id, selectedOptions);
                                 } else {
-                                    console.log('No matching variant found, using parent product');
                                     addProductToAddAllForm(addAllForm, productId, productId, selectedOptions);
                                 }
                             } else {
-                                console.log('Product without variants or no options selected');
                                 // Product without variants or with simple options
                                 addProductToAddAllForm(addAllForm, productId, productId, selectedOptions);
                             }
                         });
                         
-                        console.log('=== FINAL FORM STATE ===');
                         addAllForm.querySelectorAll('input[name*="lineItems"]').forEach(input => {
                             console.log('Form input:', input.name, '=', input.value);
                         });
                     }
                 }
-                console.log('=== END UPDATE ADD ALL BUTTON DEBUG ===\n');
             }
             
             function addProductToAddAllForm(addAllForm, originalProductId, variantId, selectedOptions) {
-                console.log('=== ADD PRODUCT TO FORM DEBUG ===');
-                console.log('Original Product ID:', originalProductId);
-                console.log('Variant ID to use:', variantId);
-                console.log('Selected Options:', selectedOptions);
+
                 
                 // Create complete set of inputs for this product/variant
                 const inputs = [
@@ -1232,8 +1177,6 @@
                     { name: `lineItems[${variantId}][removable]`, value: '1' }
                 ];
                 
-                console.log('Creating inputs:', inputs);
-                
                 inputs.forEach(inputData => {
                     const input = document.createElement('input');
                     input.type = 'hidden';
@@ -1242,7 +1185,6 @@
                     input.classList.add('product-line-item');
                     input.setAttribute('data-product-id', originalProductId);
                     addAllForm.appendChild(input);
-                    console.log('Added input:', inputData.name, '=', inputData.value);
                 });
                 
                 // Add option inputs for selected variants
@@ -1254,10 +1196,7 @@
                     optionInput.classList.add('variant-option', 'product-line-item');
                     optionInput.setAttribute('data-product-id', originalProductId);
                     addAllForm.appendChild(optionInput);
-                    console.log('Added option input:', optionInput.name, '=', optionId);
                 });
-                
-                console.log('=== END ADD PRODUCT DEBUG ===');
             }
             
             // Initialize forms with correct variant data on page load
@@ -1282,7 +1221,6 @@
                     }
                 });
                 
-                console.log('Initializing product', productId, 'with options:', selectedOptions);
                 
                 // Check if this product has variant data
                 const variantDataScript = document.querySelector(`.variant-data[data-product-id="${productId}"]`);
@@ -1297,7 +1235,6 @@
                     }
                     
                     if (matchingVariant) {
-                        console.log('Found initial variant for product', productId, ':', matchingVariant);
                         // Update individual form
                         if (individualForm) {
                             updateFormForVariant(individualForm, matchingVariant.id, selectedOptions);
@@ -1309,7 +1246,6 @@
                     }
                 } else if (selectedOptions.length > 0) {
                     // Product without variants but has options (properties)
-                    console.log('Initializing simple product', productId, 'with options:', selectedOptions);
                     if (individualForm) {
                         updateFormForVariant(individualForm, productId, selectedOptions);
                     }
@@ -1318,7 +1254,6 @@
                     }
                 } else {
                     // Product without any variants or options
-                    console.log('Initializing simple product', productId, 'without options');
                     if (addAllForm) {
                         updateAddAllFormForProduct(addAllForm, productId, productId, []);
                     }

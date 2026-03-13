@@ -1,4 +1,3 @@
-alert("hey brooo");
 import './component';
 import './preview';
 

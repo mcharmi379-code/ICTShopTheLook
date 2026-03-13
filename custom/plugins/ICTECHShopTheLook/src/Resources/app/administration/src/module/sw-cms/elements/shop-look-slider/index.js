@@ -1,4 +1,3 @@
-alert("coming heree shop look slider index");
 import './component';
 import './config';
 import './preview';

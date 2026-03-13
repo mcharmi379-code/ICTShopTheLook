@@ -23,7 +23,7 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
 
     watch: {
         'element.config.imageDimension.value'(newValue) {
-            console.log('Image dimension changed to:', newValue);
+       
             console.log('Current config before change:', JSON.stringify({
                 imageDimension: this.element.config.imageDimension?.value,
                 customWidth: this.element.config.customWidth?.value,
@@ -96,16 +96,13 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
 
     created() {
         this.initElementConfig('ict-shop-the-look');
-        console.log('Shop The Look - Element Created:', this.element);
-        console.log('Shop The Look - Config:', this.element.config);
+      
         this.loadHotspots();
     },
 
     methods: {
         onElementUpdate() {
-            console.log('=== ELEMENT UPDATE TRIGGERED ===');
-            console.log('Current hotspots:', JSON.stringify(this.hotspots));
-            console.log('Element config:', JSON.stringify(this.element.config));
+          
             this.$emit('element-update', this.element);
         },
 
@@ -120,7 +117,7 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
                 if (this.element.config.customHeight) {
                     this.element.config.customHeight.value = null;
                 }
-                console.log('Cleared custom dimensions for predefined size:', imageDimension);
+               
             }
         },
 
@@ -155,23 +152,19 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
             };
             this.hotspots.push(newHotspot);
             this.saveHotspots();
-            console.log('Shop The Look - Hotspot Added:', newHotspot);
         },
 
         removeHotspot(index) {
-            console.log('Shop The Look - Removing Hotspot at Index:', index);
             this.hotspots.splice(index, 1);
             this.saveHotspots();
         },
 
         onHotspotChange(index) {
-            console.log('Shop The Look - Hotspot Changed:', this.hotspots[index]);
             this.saveHotspots();
         },
 
         saveHotspots() {
             this.element.config.hotspots.value = this.hotspots;
-            console.log('Shop The Look - All Hotspots Saved:', this.hotspots);
             console.log('Shop The Look - Full Config Being Saved:', JSON.stringify({
                 imageDimension: this.element.config.imageDimension?.value,
                 customWidth: this.element.config.customWidth?.value,
