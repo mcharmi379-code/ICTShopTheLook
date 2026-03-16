@@ -14,7 +14,7 @@
                 <!-- Image Dimension Selection -->
                 <mt-select
                     v-model="element.config.imageDimension.value"
-                    label="Image Dimension"
+                    :label="$tc('ict-shop-the-look.config.label.imageDimension') "
                     :options="imageDimensionOptions"
                     @update:model-value="$emit('element-update', element)"
                 />
@@ -23,14 +23,14 @@
                 <div v-if="element.config.imageDimension.value === 'custom'" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
                     <mt-number-field
                         v-model="element.config.customWidth.value"
-                        label="Width (px)"
+                        :label="$tc('ict-shop-the-look.config.label.customWidth')"
                         :min="50"
                         :max="2000"
                         @update:model-value="$emit('element-update', element)"
                     />
                     <mt-number-field
                         v-model="element.config.customHeight.value"
-                        label="Height (px)"
+                        :label="$tc('ict-shop-the-look.config.label.customHeight')"
                         :min="50"
                         :max="2000"
                         @update:model-value="$emit('element-update', element)"
@@ -45,7 +45,7 @@
                 />
 
                 <sw-media-upload-v2
-                    label="Look Image"
+                    :label="$tc('ict-shop-the-look.config.label.lookImage')"
                     :source="element.config.lookImage.value"
                     :upload-tag="uploadTag"
                     :default-folder="defaultFolderName"
@@ -59,16 +59,16 @@
                         v-if="showError && hasProductError"
                         style="background:#fde8e8;border:1px solid #e53935;border-radius:4px;padding:10px 14px;margin-bottom:16px;color:#b71c1c;font-size:13px;font-weight:500;"
                     >
-                        &#x2715; Please add at least one hotspot with a product selected before saving.
+                        &#x2715; {{ $tc('ict-shop-the-look.config.validation.missingProduct') }}
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h3>Product Hotspots</h3>
+                        <h3>{{ $tc('ict-shop-the-look.config.hotspot.heading') }}</h3>
                         <sw-button
                             variant="primary"
                             size="small"
                             @click="addHotspot"
                         >
-                            Add Hotspot
+                            {{ $tc('ict-shop-the-look.config.hotspot.addButton') }}
                         </sw-button>
                     </div>
 
@@ -81,13 +81,13 @@
                             style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 4px;"
                         >
                             <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 10px;">
-                                <h4>Hotspot {{ index + 1 }}</h4>
+                                <h4>{{ $tc('ict-shop-the-look.config.hotspot.title', { index: index + 1 }) }}</h4>
                                 <sw-button
                                     variant="danger"
                                     size="small"
                                     @click="removeHotspot(index)"
                                 >
-                                    Remove
+                                    {{ $tc('ict-shop-the-look.config.hotspot.removeButton') }}
                                 </sw-button>
                             </div>
 
@@ -97,14 +97,14 @@
                                 <div>
                                     <mt-number-field
                                         v-model="hotspot.xPosition"
-                                        label="X Position (%)"
+                                        :label="$tc('ict-shop-the-look.config.label.xPosition')"
                                         :min="0"
                                         :max="100"
                                         @update:model-value="onHotspotChange(index)"
                                     />
                                     <mt-number-field
                                         v-model="hotspot.yPosition"
-                                        label="Y Position (%)"
+                                        :label="$tc('ict-shop-the-look.config.label.yPosition')"
                                         :min="0"
                                         :max="100"
                                         @update:model-value="onHotspotChange(index)"
@@ -116,7 +116,7 @@
                                 <div>
                                     <sw-entity-single-select
                                         v-model:value="hotspot.productId"
-                                        label="Select Product"
+                                        :label="$tc('ict-shop-the-look.config.label.selectProduct')"
                                         entity="product"
                                         :criteria="productCriteria"
                                         :context="productContext"
@@ -155,13 +155,12 @@
                                         ></div>
                                     </div>
                                     <p style="font-size: 12px; color: #666; margin-top: 5px;">
-                                        Red dot = Current hotspot<br>
-                                        Blue dots = Other hotspots
+                                        {{ $tc('ict-shop-the-look.config.hotspot.previewHint') }}
                                     </p>
                                 </div>
 
                                 <div v-else class="no-image-preview">
-                                    <p style="color: #999; font-style: italic;">Upload an image to see preview</p>
+                                    <p style="color: #999; font-style: italic;">{{ $tc('ict-shop-the-look.config.hotspot.noImagePreview') }}</p>
                                 </div>
 
                             </div>
@@ -170,7 +169,7 @@
 
                     <div v-else class="no-hotspots">
                         <p style="color: #999; text-align: center; padding: 20px;">
-                            No hotspots added yet. Click "Add Hotspot" to get started.
+                            {{ $tc('ict-shop-the-look.config.hotspot.noHotspots') }}
                         </p>
                     </div>
                 </div>
@@ -181,41 +180,41 @@
 
                 <mt-text-field
                     v-model="element.config.productListWidth.value"
-                    label="Product List Width"
+                    :label="$tc('ict-shop-the-look.config.label.productListWidth')"
                     @update:model-value="$emit('element-update', element)"
                 />
 
                 <mt-select
                     v-model="element.config.layoutStyle.value"
-                    label="Layout Style"
+                    :label="$tc('ict-shop-the-look.config.label.layoutStyle')"
                     :options="layoutOptions"
                     @update:model-value="$emit('element-update', element)"
                 />
 
                 <mt-switch
                     v-model="element.config.showPrices.value"
-                    label="Show Prices"
+                    :label="$tc('ict-shop-the-look.config.label.showPrices')"
                     bordered
                     @update:model-value="$emit('element-update', element)"
                 />
 
                 <mt-switch
                     v-model="element.config.showVariantSwitch.value"
-                    label="Show Variant Switch"
+                    :label="$tc('ict-shop-the-look.config.label.showVariantSwitch')"
                     bordered
                     @update:model-value="$emit('element-update', element)"
                 />
 
                 <mt-switch
                     v-model="element.config.addAllToCart.value"
-                    label="Add All Products to Cart Button"
+                    :label="$tc('ict-shop-the-look.config.label.addAllToCart')"
                     bordered
                     @update:model-value="$emit('element-update', element)"
                 />
 
                 <mt-switch
                     v-model="element.config.addSingleProduct.value"
-                    label="Add Single Product to Cart Button"
+                    :label="$tc('ict-shop-the-look.config.label.addSingleProduct')"
                     bordered
                     @update:model-value="$emit('element-update', element)"
                 />
