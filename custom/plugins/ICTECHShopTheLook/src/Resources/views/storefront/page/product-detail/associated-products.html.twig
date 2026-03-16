@@ -56,10 +56,11 @@
                                 <div class="product-info">
                                     <strong class="d-block">{{ product.name }}</strong>
                                     <small class="text-muted">{{ product.productNumber }}</small>
+                                 
                                 </div>
                             </td>
                             <td>
-                                {% if product.hasVariants and product.variants %}
+                                {% if product.variants and product.variants|length > 0 %}
                                     <select class="form-control form-select variant-selector" 
                                             data-product-id="{{ product.id }}"
                                             onchange="updateSelectedVariant('{{ product.id }}', this.value)">
@@ -67,7 +68,8 @@
                                         {% for variant in product.variants %}
                                             <option value="{{ variant.id }}" 
                                                     data-price="{{ variant.price.first.gross }}"
-                                                    data-stock="{{ variant.stock }}">
+                                                    data-stock="{{ variant.stock }}"
+                                                    {% if loop.first %}selected{% endif %}>
                                                 {% for option in variant.options %}
                                                     {{ option.option }}{% if not loop.last %}, {% endif %}
                                                 {% endfor %}
@@ -87,19 +89,30 @@
                                 </span>
                             </td>
                             <td>
-                                <form action="{{ path('frontend.checkout.line-item.add') }}" method="post" class="add-to-cart-form" data-add-to-cart="true">
-                                    {% if product.hasVariants and product.variants %}
-                                        <input type="hidden" name="lineItems[{{ product.id }}][id]" value="" id="variant-id-{{ product.id }}" required>
-                                        <input type="hidden" name="lineItems[{{ product.id }}][type]" value="product">
-                                        <input type="hidden" name="lineItems[{{ product.id }}][quantity]" value="1">
-                                        <button type="submit" class="btn btn-primary btn-sm add-to-cart-btn" disabled 
+                                <form action="{{ path('frontend.checkout.line-item.add') }}" method="post" class="add-to-cart-form" data-add-to-cart="true" data-product-id="{{ product.id }}">
+                                    {% if product.variants and product.variants|length > 0 %}
+                                        {% set firstVariant = product.variants[0] %}
+                                        <input type="hidden" name="lineItems[{{ firstVariant.id }}][id]" value="{{ firstVariant.id }}" id="variant-id-{{ product.id }}">
+                                        <input type="hidden" name="lineItems[{{ firstVariant.id }}][type]" value="product">
+                                        <input type="hidden" name="lineItems[{{ firstVariant.id }}][referencedId]" value="{{ firstVariant.id }}">
+                                        <input type="hidden" name="lineItems[{{ firstVariant.id }}][quantity]" value="1">
+                                        <input type="hidden" name="lineItems[{{ firstVariant.id }}][stackable]" value="1">
+                                        <input type="hidden" name="lineItems[{{ firstVariant.id }}][removable]" value="1">
+                                        <input type="hidden" name="redirectTo" value="frontend.detail.page">
+                                        <input type="hidden" name="redirectParameters" value='{{ {"productId": page.product.id}|json_encode }}'>
+                                        <button type="submit" class="btn btn-primary btn-sm add-to-cart-btn" 
                                                 id="add-to-cart-{{ product.id }}">
                                             Add to Cart
                                         </button>
                                     {% else %}
                                         <input type="hidden" name="lineItems[{{ product.id }}][id]" value="{{ product.id }}">
                                         <input type="hidden" name="lineItems[{{ product.id }}][type]" value="product">
+                                        <input type="hidden" name="lineItems[{{ product.id }}][referencedId]" value="{{ product.id }}">
                                         <input type="hidden" name="lineItems[{{ product.id }}][quantity]" value="1">
+                                        <input type="hidden" name="lineItems[{{ product.id }}][stackable]" value="1">
+                                        <input type="hidden" name="lineItems[{{ product.id }}][removable]" value="1">
+                                        <input type="hidden" name="redirectTo" value="frontend.detail.page">
+                                        <input type="hidden" name="redirectParameters" value='{{ {"productId": page.product.id}|json_encode }}'>
                                         <button type="submit" class="btn btn-primary btn-sm add-to-cart-btn">
                                             Add to Cart
                                         </button>
@@ -144,19 +157,32 @@
 
 <script>
 function updateSelectedVariant(productId, variantId) {
-    const variantInput = document.getElementById('variant-id-' + productId);
-    const addToCartBtn = document.getElementById('add-to-cart-' + productId);
-    const priceDisplay = document.getElementById('price-' + productId);
+    const form = document.querySelector(`form[data-product-id="${productId}"]`);
+    if (!form) return;
     
-    if (variantInput) {
-        variantInput.value = variantId;
-    }
+    // Remove all existing lineItems inputs
+    form.querySelectorAll('input[name*="lineItems["]').forEach(input => input.remove());
     
-    if (addToCartBtn) {
-        addToCartBtn.disabled = !variantId;
-    }
+    // Create new inputs with the selected variant ID
+    const inputs = [
+        { name: `lineItems[${variantId}][id]`, value: variantId },
+        { name: `lineItems[${variantId}][type]`, value: 'product' },
+        { name: `lineItems[${variantId}][referencedId]`, value: variantId },
+        { name: `lineItems[${variantId}][quantity]`, value: '1' },
+        { name: `lineItems[${variantId}][stackable]`, value: '1' },
+        { name: `lineItems[${variantId}][removable]`, value: '1' }
+    ];
+    
+    inputs.forEach(inputData => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = inputData.name;
+        input.value = inputData.value;
+        form.appendChild(input);
+    });
     
     // Update price display
+    const priceDisplay = document.getElementById('price-' + productId);
     if (variantId && priceDisplay) {
         const select = document.querySelector(`[data-product-id="${productId}"]`);
         const selectedOption = select.querySelector(`option[value="${variantId}"]`);

@@ -277,7 +277,8 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
                 }
             }
             
-            $result[] = [
+            // Convert to array-like structure that Twig can iterate
+            $productArray = [
                 'id' => $product->getId(),
                 'name' => $product->getName(),
                 'productNumber' => $product->getProductNumber(),
@@ -287,8 +288,15 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
                 'variants' => $variants,
                 'hasVariants' => !empty($variants)
             ];
+            
+            // Make variants accessible as array
+            if (!empty($variants)) {
+                $productArray['variants'] = $variants;
+            }
+            
+            $result[] = $productArray;
         }
-        
+
         error_log('Final result count: ' . count($result));
         
         return $result;
