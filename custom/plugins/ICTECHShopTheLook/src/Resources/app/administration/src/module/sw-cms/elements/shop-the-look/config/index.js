@@ -146,6 +146,23 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
             this.saveHotspots();
         },
 
+        async onHotspotProductChange(index) {
+            const hotspot = this.hotspots[index];
+            if (hotspot.productId) {
+                const criteria = new Criteria(1, 1);
+                criteria.addAssociation('cover.media');
+                const product = await this.productRepository.get(hotspot.productId, Shopware.Context.api, criteria);
+                if (product) {
+                    hotspot.productName = product.translated?.name || product.name || '';
+                    hotspot.productCoverUrl = product.cover?.media?.url || null;
+                }
+            } else {
+                hotspot.productName = null;
+                hotspot.productCoverUrl = null;
+            }
+            this.saveHotspots();
+        },
+
         onHotspotChange(index) {
             this.saveHotspots();
         },

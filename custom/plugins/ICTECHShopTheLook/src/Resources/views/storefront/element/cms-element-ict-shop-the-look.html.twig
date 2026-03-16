@@ -3,13 +3,24 @@
 
     {% set lookImage = config.lookImage %}
     {% set hotspots = config.hotspots %}
-    {% set layoutStyle = config.layoutStyle %}
+    {% set layoutStyle = config.layoutStyle ?? 'image-products' %}
+    {% set showImage    = layoutStyle in ['image-products', 'products-image', 'only-image'] %}
+    {% set showProducts = layoutStyle in ['image-products', 'products-image', 'only-products'] %}
     <div class="cms-element-ict-shop-the-look">
-        <div class="shop-the-look-container">
+        <div class="shop-the-look-container layout--{{ layoutStyle }}">
             
             <!-- Left Side - Main Image with Hotspots -->
+            {% if showImage %}
             <div class="shop-the-look-image-section">
-                {% if lookImage and lookImage.url %}
+                {% if not (lookImage and lookImage.url) %}
+                    <div class="shop-the-look-main-image" style="position: relative;">
+                        <img
+                            src="{{ asset('bundles/administration/administration/static/img/cms/preview_mountain_large.webp') }}"
+                            alt="Shop The Look"
+                            class="main-look-image"
+                        />
+                    </div>
+                {% else %}
                     <div class="shop-the-look-main-image" style="position: relative;">
                         <img 
                             src="{{ lookImage.url }}" 
@@ -76,8 +87,8 @@
                     </div>
                 {% endif %}
             </div>
-            
-            <!-- Right Side - Product List -->
+            {% endif %}
+            {% if showProducts %}
             <div class="shop-the-look-products-section">
                 {% if hotspots %}
                     <div class="products-list">
@@ -352,6 +363,7 @@
                     {% endif %}
                 {% endif %}
             </div>
+            {% endif %}
             
         </div>
     </div>
@@ -366,6 +378,32 @@
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
+        }
+
+        /* products-image: swap columns so products are left, image is right */
+        .shop-the-look-container.layout--products-image {
+            grid-template-columns: 400px 1fr;
+        }
+        .shop-the-look-container.layout--products-image .shop-the-look-products-section {
+            order: -1;
+        }
+
+        /* only-image: single column, no products panel */
+        .shop-the-look-container.layout--only-image {
+            grid-template-columns: 1fr;
+        }
+        .shop-the-look-container.layout--only-image .shop-the-look-image-section {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        /* only-products: single column, no image */
+        .shop-the-look-container.layout--only-products {
+            grid-template-columns: 1fr;
+        }
+        .shop-the-look-container.layout--only-products .shop-the-look-products-section {
+            max-width: 700px;
+            margin: 0 auto;
         }
         
         .shop-the-look-image-section {
