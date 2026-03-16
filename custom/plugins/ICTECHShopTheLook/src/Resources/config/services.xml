@@ -21,11 +21,6 @@
             <tag name="kernel.event_subscriber"/>
         </service>
         
-        <!-- Debug Shop The Look Command -->
-        <service id="ICTECHShopTheLook\Command\DebugShopTheLookCommand">
-            <argument type="service" id="cms_slot.repository"/>
-            <argument type="service" id="product.repository"/>
-            <tag name="console.command"/>
-        </service>
+
     </services>
 </container>
