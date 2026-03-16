@@ -9,7 +9,8 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
     inject: ['repositoryFactory'],
 
     mixins: [
-        Mixin.getByName('cms-element')
+        Mixin.getByName('cms-element'),
+        Mixin.getByName('notification'),
     ],
 
     emits: ['element-update'],
@@ -17,20 +18,27 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
     data() {
         return {
             mediaModalOpen: false,
-            hotspots: []
+            hotspots: [],
+            showError: false,
         };
     },
 
     watch: {
-        'element.config.imageDimension.value'(newValue) {
-       
-           
-            
+        'element.config.imageDimension.value'() {
             this.cleanupDimensionConfig();
-
-            
             this.onElementUpdate();
-        }
+        },
+        'element.config.layoutStyle.value'() {
+            this.showError = false;
+        },
+        hotspots: {
+            deep: true,
+            handler() {
+                if (this.showError && !this.hasProductError) {
+                    this.showError = false;
+                }
+            },
+        },
     },
 
     computed: {
@@ -53,7 +61,6 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
         productCriteria() {
             const criteria = new Criteria(1, 25);
             criteria.addAssociation('cover');
-            // Only show parent products (not variants)
             criteria.addFilter(Criteria.equals('parentId', null));
             return criteria;
         },
@@ -71,7 +78,7 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
                 { value: '300x300', label: '300 x 300' },
                 { value: '400x400', label: '400 x 400' },
                 { value: '500x500', label: '500 x 500' },
-                { value: 'custom', label: 'Custom' }
+                { value: 'custom', label: 'Custom' },
             ];
         },
 
@@ -80,64 +87,66 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
                 { value: 'image-products', label: 'Image → Products' },
                 { value: 'products-image', label: 'Products → Image' },
                 { value: 'only-image', label: 'Only Image' },
-                { value: 'only-products', label: 'Only Products' }
+                { value: 'only-products', label: 'Only Products' },
             ];
-        }
+        },
+
+        layoutStyle() {
+            return this.element?.config?.layoutStyle?.value || 'image-products';
+        },
+
+        requiresProducts() {
+            return ['image-products', 'products-image', 'only-products'].includes(this.layoutStyle);
+        },
+
+        hasProductError() {
+            if (!this.requiresProducts) return false;
+            return this.hotspots.length === 0 || this.hotspots.every(h => !h.productId);
+        },
     },
 
     created() {
         this.initElementConfig('ict-shop-the-look');
-      
         this.loadHotspots();
     },
 
     methods: {
+        // Called by sw-cms-slot override before closing the modal
+        validate() {
+            if (this.hasProductError) {
+                this.showError = true;
+                this.createNotificationError({
+                    message: 'Please add at least one hotspot with a product selected before saving.',
+                });
+                return false;
+            }
+            return true;
+        },
+
         onElementUpdate() {
-          
+            this.cleanupDimensionConfig();
             this.$emit('element-update', this.element);
         },
 
         cleanupDimensionConfig() {
             const imageDimension = this.element.config.imageDimension?.value;
-            
             if (imageDimension !== 'custom') {
-                // Clear custom dimensions when using predefined size
-                if (this.element.config.customWidth) {
-                    this.element.config.customWidth.value = null;
-                }
-                if (this.element.config.customHeight) {
-                    this.element.config.customHeight.value = null;
-                }
-               
+                if (this.element.config.customWidth) this.element.config.customWidth.value = null;
+                if (this.element.config.customHeight) this.element.config.customHeight.value = null;
             }
-        },
-
-        onElementUpdate() {
-            // Clean up dimension config before saving
-            this.cleanupDimensionConfig();
-            
-            
-            
-            this.$emit('element-update', this.element);
         },
 
         loadHotspots() {
-            if (this.element.config.hotspots?.value) {
-                this.hotspots = this.element.config.hotspots.value;
-               
-            } else {
-                this.hotspots = [];
-            }
+            this.hotspots = this.element.config.hotspots?.value || [];
         },
 
         addHotspot() {
-            const newHotspot = {
+            this.hotspots.push({
                 id: this.generateId(),
                 xPosition: 50,
                 yPosition: 50,
-                productId: null
-            };
-            this.hotspots.push(newHotspot);
+                productId: null,
+            });
             this.saveHotspots();
         },
 
@@ -169,7 +178,6 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
 
         saveHotspots() {
             this.element.config.hotspots.value = this.hotspots;
-           
             this.onElementUpdate();
         },
 
@@ -204,6 +212,6 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
         onRemoveImage() {
             this.element.config.lookImage.value = null;
             this.onElementUpdate();
-        }
-    }
+        },
+    },
 });

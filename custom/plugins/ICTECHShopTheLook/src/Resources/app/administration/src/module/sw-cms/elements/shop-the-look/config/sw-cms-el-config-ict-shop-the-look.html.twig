@@ -55,6 +55,12 @@
 
                 <!-- Hotspots Section -->
                 <div class="hotspot-section" style="margin-top: 30px;">
+                    <div
+                        v-if="showError && hasProductError"
+                        style="background:#fde8e8;border:1px solid #e53935;border-radius:4px;padding:10px 14px;margin-bottom:16px;color:#b71c1c;font-size:13px;font-weight:500;"
+                    >
+                        &#x2715; Please add at least one hotspot with a product selected before saving.
+                    </div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h3>Product Hotspots</h3>
                         <sw-button
