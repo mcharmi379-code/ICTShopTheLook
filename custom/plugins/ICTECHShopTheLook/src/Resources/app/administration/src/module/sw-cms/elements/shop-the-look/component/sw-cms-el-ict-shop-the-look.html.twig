@@ -40,10 +40,15 @@
                         </div>
                         <div class="look-product-price">—</div>
                     </div>
+                    <div v-if="addSingleProduct" class="look-btn-single">Add to Cart</div>
                 </div>
             </div>
             <div v-else class="look-products-empty">
                 <p>Add hotspots &amp; products in the config panel</p>
+            </div>
+
+            <div v-if="addAllToCart && hotspots.length > 1" class="look-btn-all">
+                Add All to Cart
             </div>
         </div>
 

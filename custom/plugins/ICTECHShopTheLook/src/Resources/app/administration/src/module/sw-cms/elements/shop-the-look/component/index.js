@@ -22,6 +22,12 @@ Component.register('sw-cms-el-ict-shop-the-look', {
         showProducts() {
             return ['image-products', 'products-image', 'only-products'].includes(this.layoutStyle);
         },
+        addSingleProduct() {
+            return this.element?.config?.addSingleProduct?.value !== false;
+        },
+        addAllToCart() {
+            return this.element?.config?.addAllToCart?.value !== false;
+        },
         assetFilter() {
             return Shopware.Filter.getByName('asset');
         }
