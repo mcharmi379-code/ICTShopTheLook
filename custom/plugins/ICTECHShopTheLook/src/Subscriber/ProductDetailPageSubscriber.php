@@ -3,11 +3,7 @@
 namespace ICTECHShopTheLook\Subscriber;
 
 use ICTECHShopTheLook\Struct\ShopTheLookRelatedStruct;
-use ICTECHShopTheLook\Service\ShopTheLookService;
 use Shopware\Storefront\Page\Product\ProductPageLoadedEvent;
-use Shopware\Core\Content\Product\SalesChannel\Detail\ProductDetailPageLoadedEvent;
-use Shopware\Storefront\Event\StorefrontRenderEvent;
-use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
@@ -17,104 +13,41 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
 {
     private EntityRepository $cmsSlotRepository;
     private EntityRepository $productRepository;
-    private ShopTheLookService $shopTheLookService;
 
     public function __construct(
         EntityRepository $cmsSlotRepository,
-        EntityRepository $productRepository,
-        ShopTheLookService $shopTheLookService
+        EntityRepository $productRepository
     ) {
         $this->cmsSlotRepository = $cmsSlotRepository;
         $this->productRepository = $productRepository;
-        $this->shopTheLookService = $shopTheLookService;
-        
-        // Debug: Check if subscriber is being instantiated
-        error_log('ProductDetailPageSubscriber instantiated successfully!');
     }
 
     public static function getSubscribedEvents(): array
     {
         return [
-            ProductPageLoadedEvent::class => 'onProductPageLoaded',
-            ProductDetailPageLoadedEvent::class => 'onProductDetailPageLoaded',
-            StorefrontRenderEvent::class => 'onStorefrontRender'
+            ProductPageLoadedEvent::class => 'onProductPageLoaded'
         ];
     }
     
-    public function onStorefrontRender(StorefrontRenderEvent $event): void
-    {
-        // Check if this is a product detail page
-        $page = $event->getParameters()['page'] ?? null;
-        
-        if ($page && method_exists($page, 'getProduct') && $page->getProduct()) {
-            error_log('StorefrontRenderEvent: Product page detected!');
-            $product = $page->getProduct();
-            $context = $event->getSalesChannelContext();
-            
-            // Use the service directly
-            $relatedProducts = $this->shopTheLookService->getRelatedProducts(
-                $product->getId(),
-                $product->getParentId(),
-                $context->getContext()
-            );
-            
-            if (!empty($relatedProducts)) {
-                $struct = new ShopTheLookRelatedStruct($relatedProducts);
-                $page->addExtension('shopTheLookProducts', $struct);
-                error_log('Extension added via StorefrontRenderEvent!');
-            }
-        }
-    }
-    
-    public function onProductDetailPageLoaded(ProductDetailPageLoadedEvent $event): void
-    {
-        error_log('ProductDetailPageSubscriber::onProductDetailPageLoaded called!');
-        
-        $product = $event->getPage()->getProduct();
-        $context = $event->getSalesChannelContext();
-        
-        $this->processProductPage($product, $context, $event->getPage());
-    }
-
     public function onProductPageLoaded(ProductPageLoadedEvent $event): void
     {
-        error_log('ProductDetailPageSubscriber::onProductPageLoaded called!');
-        
         $product = $event->getPage()->getProduct();
         $context = $event->getSalesChannelContext();
         
-        $this->processProductPage($product, $context, $event->getPage());
-    }
-    
-    private function processProductPage($product, $context, $page): void
-    {
-        // Get current product ID and parent ID
         $productId = $product->getId();
         $parentId = $product->getParentId();
         
-        error_log('Product ID: ' . $productId);
-        error_log('Parent ID: ' . ($parentId ?? 'null'));
+        // Get related products using the working logic from Twig extension
+        $relatedProducts = $this->getShopTheLookDataForProduct($productId, $parentId, $context->getContext());
         
-        // Find associated products from Shop The Look elements
-        $associatedProducts = $this->findAssociatedProducts($productId, $parentId, $context->getContext());
-        
-        error_log('Associated products count: ' . count($associatedProducts));
-        
-        if (!empty($associatedProducts)) {
-            $struct = new ShopTheLookRelatedStruct($associatedProducts);
-            $page->addExtension('shopTheLookProducts', $struct);
-            error_log('Extension added to page!');
-        } else {
-            error_log('No associated products found');
+        if (!empty($relatedProducts)) {
+            $struct = new ShopTheLookRelatedStruct($relatedProducts);
+            $event->getPage()->addExtension('shopTheLookData', $struct);
         }
     }
 
-    private function findAssociatedProducts(string $productId, ?string $parentId, $context): array
+    private function getShopTheLookDataForProduct(string $productId, ?string $parentId, $context): array
     {
-        error_log('=== FINDING ASSOCIATED PRODUCTS ===');
-        error_log('Current Product ID: ' . $productId);
-        error_log('Current Parent ID: ' . ($parentId ?? 'null'));
-        
         // Search for CMS slots with type 'ict-shop-the-look'
         $criteria = new Criteria();
         $criteria->addFilter(new EqualsFilter('type', 'ict-shop-the-look'));
@@ -122,65 +55,89 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
         
         $cmsSlots = $this->cmsSlotRepository->search($criteria, $context);
         
-        error_log('Found CMS Slots: ' . $cmsSlots->count());
-        
         $associatedProductIds = [];
+        $foundByParentMatch = false;
         
-        foreach ($cmsSlots->getElements() as $slot) {
-            $config = $slot->getTranslated()['config'] ?? [];
-            
-            error_log('Processing slot ID: ' . $slot->getId());
-            
-            if (isset($config['hotspots']['value']) && is_array($config['hotspots']['value'])) {
-                $hotspots = $config['hotspots']['value'];
+        // FIRST PASS: Check ALL slots for parent ID matches (preferred)
+        if ($parentId) {
+            foreach ($cmsSlots->getElements() as $slot) {
+                $config = $slot->getTranslated()['config'] ?? [];
                 
-                error_log('Hotspots in this slot: ' . count($hotspots));
-                
-                // Check if current product is in any hotspot
-                $currentProductFound = false;
-                foreach ($hotspots as $index => $hotspot) {
-                    if (isset($hotspot['productId']) && !empty($hotspot['productId'])) {
-                        error_log('Hotspot ' . $index . ' product ID: ' . $hotspot['productId']);
-                        // Check both product ID and parent ID
-                        if ($hotspot['productId'] === $productId || ($parentId && $hotspot['productId'] === $parentId)) {
-                            error_log('MATCH FOUND! Current product found in hotspot ' . $index);
-                            $currentProductFound = true;
-                            break;
-                        }
-                    }
-                }
-                
-                error_log('Current product found in this slot: ' . ($currentProductFound ? 'YES' : 'NO'));
-                
-                if ($currentProductFound) {
-                    error_log('Adding other products from this Shop The Look...');
-                    // Add all OTHER products from this Shop The Look
-                    foreach ($hotspots as $index => $hotspot) {
+                if (isset($config['hotspots']['value']) && is_array($config['hotspots']['value'])) {
+                    $hotspots = $config['hotspots']['value'];
+                    
+                    // Check if parent ID is in any hotspot
+                    $parentMatchFound = false;
+                    foreach ($hotspots as $hotspot) {
                         if (isset($hotspot['productId']) && !empty($hotspot['productId'])) {
-                            $hotspotProductId = $hotspot['productId'];
-                            error_log('Checking hotspot ' . $index . ' product: ' . $hotspotProductId);
-                            // Exclude current product and its parent
-                            if ($hotspotProductId !== $productId && $hotspotProductId !== $parentId) {
-                                error_log('Adding product: ' . $hotspotProductId);
-                                $associatedProductIds[] = $hotspotProductId;
-                            } else {
-                                error_log('Excluding current product: ' . $hotspotProductId);
+                            if ($hotspot['productId'] === $parentId) {
+                                $parentMatchFound = true;
+                                break;
                             }
                         }
                     }
-                    break; // Found the Shop The Look containing current product
+                    
+                    if ($parentMatchFound) {
+                        $foundByParentMatch = true;
+                        
+                        // Add all OTHER products from this Shop The Look
+                        foreach ($hotspots as $hotspot) {
+                            if (isset($hotspot['productId']) && !empty($hotspot['productId'])) {
+                                $hotspotProductId = $hotspot['productId'];
+                                
+                                // Exclude the parent ID (current product's parent)
+                                if ($hotspotProductId !== $parentId) {
+                                    $associatedProductIds[] = $hotspotProductId;
+                                }
+                            }
+                        }
+                        break; // Found the correct Shop The Look
+                    }
                 }
-            } else {
-                error_log('No hotspots found in this slot');
             }
         }
         
-        error_log('Raw associated product IDs: ' . implode(', ', $associatedProductIds));
+        // SECOND PASS: Only if no parent match found, check for direct product ID matches
+        if (!$foundByParentMatch) {
+            foreach ($cmsSlots->getElements() as $slot) {
+                $config = $slot->getTranslated()['config'] ?? [];
+                
+                if (isset($config['hotspots']['value']) && is_array($config['hotspots']['value'])) {
+                    $hotspots = $config['hotspots']['value'];
+                    
+                    // Check if current product ID is in any hotspot
+                    $directMatchFound = false;
+                    foreach ($hotspots as $hotspot) {
+                        if (isset($hotspot['productId']) && !empty($hotspot['productId'])) {
+                            if ($hotspot['productId'] === $productId) {
+                                $directMatchFound = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if ($directMatchFound) {
+                        // Add all OTHER products from this Shop The Look
+                        foreach ($hotspots as $hotspot) {
+                            if (isset($hotspot['productId']) && !empty($hotspot['productId'])) {
+                                $hotspotProductId = $hotspot['productId'];
+                                
+                                // Exclude current product and its parent
+                                if ($hotspotProductId !== $productId && $hotspotProductId !== $parentId) {
+                                    $associatedProductIds[] = $hotspotProductId;
+                                }
+                            }
+                        }
+                        break; // Found a Shop The Look
+                    }
+                }
+            }
+        }
         
         // Remove duplicates and get parent product IDs for any variants
         $associatedProductIds = array_unique($associatedProductIds);
         
-        // Convert variant IDs to parent IDs if needed and handle exclusions properly
+        // Convert variant IDs to parent IDs if needed
         $parentProductIds = [];
         if (!empty($associatedProductIds)) {
             $checkCriteria = new Criteria($associatedProductIds);
@@ -193,35 +150,25 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
                 $currentParentId = $productId;
             }
             
-            error_log('Current parent ID for exclusion: ' . $currentParentId);
-            
             foreach ($checkProducts->getElements() as $checkProduct) {
                 $targetParentId = null;
                 
                 if ($checkProduct->getParentId() !== null) {
                     // This is a variant, use parent ID
                     $targetParentId = $checkProduct->getParentId();
-                    error_log('Product ' . $checkProduct->getId() . ' is variant, parent: ' . $targetParentId);
                 } else {
                     // This is already a parent product
                     $targetParentId = $checkProduct->getId();
-                    error_log('Product ' . $checkProduct->getId() . ' is parent product');
                 }
                 
                 // Only add if it's not the same as current product's parent
                 if ($targetParentId !== $currentParentId) {
-                    error_log('Adding parent product: ' . $targetParentId);
                     $parentProductIds[] = $targetParentId;
-                } else {
-                    error_log('Excluding same parent: ' . $targetParentId);
                 }
             }
         }
         
         $parentProductIds = array_unique($parentProductIds);
-        
-        error_log('Final Parent Product IDs: ' . implode(', ', $parentProductIds));
-        error_log('=== END FINDING ASSOCIATED PRODUCTS ===');
         
         if (empty($parentProductIds)) {
             return [];
@@ -277,8 +224,7 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
                 }
             }
             
-            // Convert to array-like structure that Twig can iterate
-            $productArray = [
+            $result[] = [
                 'id' => $product->getId(),
                 'name' => $product->getName(),
                 'productNumber' => $product->getProductNumber(),
@@ -288,16 +234,7 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
                 'variants' => $variants,
                 'hasVariants' => !empty($variants)
             ];
-            
-            // Make variants accessible as array
-            if (!empty($variants)) {
-                $productArray['variants'] = $variants;
-            }
-            
-            $result[] = $productArray;
         }
-
-        error_log('Final result count: ' . count($result));
         
         return $result;
     }

@@ -1,6 +1,5 @@
 {% block element_ict_shop_the_look %}
     {% set config = element.data %}
-    {# {{dump("Config:", config)}} #}
 
     {% set lookImage = config.lookImage %}
     {% set hotspots = config.hotspots %}
@@ -715,7 +714,6 @@
     <script>
         // Global function to rebuild form before submission
         function rebuildAddAllForm() {
-            alert("Rebuilding Add All Form");
             const addAllForm = document.querySelector('.add-all-form');
             if (!addAllForm) return;
             
@@ -802,7 +800,6 @@
                 const productId = productItem.dataset.productId;
                 
                 productItem.querySelectorAll('.variant-radio').forEach(radio => {
-                    console.log(`  ${radio.name}: ${radio.value} (${radio.dataset.optionName}) - checked: ${radio.checked}`);
                 });
             });
         }
@@ -893,7 +890,6 @@
                     const addAllForm = document.querySelector('.add-all-form');
                     
                     if (!productId) {
-                        console.error('Missing productId');
                         return;
                     }
                     
@@ -930,7 +926,7 @@
                                 updateAddAllButton();
                             }
                         } else {
-                            console.warn('No exact match found, using best match or first variant');
+                            // No exact match found, using best match or first variant
                             // Fallback: find variant with most matching options
                             let bestMatch = findBestMatchingVariant(variantData.variants, selectedOptions);
                             if (bestMatch) {
@@ -1152,7 +1148,7 @@
                         });
                         
                         addAllForm.querySelectorAll('input[name*="lineItems"]').forEach(input => {
-                            console.log('Form input:', input.name, '=', input.value);
+
                         });
                     }
                 }

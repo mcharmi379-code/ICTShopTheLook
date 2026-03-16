@@ -18,7 +18,6 @@
         <service id="ICTECHShopTheLook\Subscriber\ProductDetailPageSubscriber">
             <argument type="service" id="cms_slot.repository"/>
             <argument type="service" id="product.repository"/>
-            <argument type="service" id="ICTECHShopTheLook\Service\ShopTheLookService"/>
             <tag name="kernel.event_subscriber"/>
         </service>
         
@@ -27,19 +26,6 @@
             <argument type="service" id="cms_slot.repository"/>
             <argument type="service" id="product.repository"/>
             <tag name="console.command"/>
-        </service>
-        
-        <!-- Twig Extension -->
-        <service id="ICTECHShopTheLook\Twig\ShopTheLookExtension">
-            <argument type="service" id="cms_slot.repository"/>
-            <argument type="service" id="product.repository"/>
-            <tag name="twig.extension"/>
-        </service>
-        
-        <!-- Shop The Look Service -->
-        <service id="ICTECHShopTheLook\Service\ShopTheLookService">
-            <argument type="service" id="cms_slot.repository"/>
-            <argument type="service" id="product.repository"/>
         </service>
     </services>
 </container>

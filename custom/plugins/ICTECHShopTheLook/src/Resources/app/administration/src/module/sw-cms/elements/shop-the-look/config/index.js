@@ -24,19 +24,10 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
     watch: {
         'element.config.imageDimension.value'(newValue) {
        
-            console.log('Current config before change:', JSON.stringify({
-                imageDimension: this.element.config.imageDimension?.value,
-                customWidth: this.element.config.customWidth?.value,
-                customHeight: this.element.config.customHeight?.value
-            }));
+           
             
             this.cleanupDimensionConfig();
-            
-            console.log('Config after change:', JSON.stringify({
-                imageDimension: this.element.config.imageDimension?.value,
-                customWidth: this.element.config.customWidth?.value,
-                customHeight: this.element.config.customHeight?.value
-            }));
+
             
             this.onElementUpdate();
         }
@@ -125,11 +116,7 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
             // Clean up dimension config before saving
             this.cleanupDimensionConfig();
             
-            console.log('Final config before save:', JSON.stringify({
-                imageDimension: this.element.config.imageDimension?.value,
-                customWidth: this.element.config.customWidth?.value,
-                customHeight: this.element.config.customHeight?.value
-            }));
+            
             
             this.$emit('element-update', this.element);
         },
@@ -137,7 +124,7 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
         loadHotspots() {
             if (this.element.config.hotspots?.value) {
                 this.hotspots = this.element.config.hotspots.value;
-                console.log('Shop The Look - Hotspots Loaded:', this.hotspots);
+               
             } else {
                 this.hotspots = [];
             }
@@ -165,13 +152,7 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
 
         saveHotspots() {
             this.element.config.hotspots.value = this.hotspots;
-            console.log('Shop The Look - Full Config Being Saved:', JSON.stringify({
-                imageDimension: this.element.config.imageDimension?.value,
-                customWidth: this.element.config.customWidth?.value,
-                customHeight: this.element.config.customHeight?.value,
-                layout: this.element.config.layout?.value,
-                hotspots: this.element.config.hotspots?.value
-            }));
+           
             this.onElementUpdate();
         },
 
@@ -180,23 +161,18 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
         },
 
         onMediaSelect(selection) {
-            console.log('Shop The Look - Media Selected:', selection);
             this.element.config.lookImage.value = selection[0];
             this.mediaModalOpen = false;
-            console.log('Shop The Look - Look Image Saved:', this.element.config.lookImage.value);
             this.onElementUpdate();
         },
 
         onMediaUpload(mediaItem) {
-            console.log('Shop The Look - Media Uploaded:', mediaItem);
             this.setMediaItem({ targetId: mediaItem.targetId });
         },
 
         async setMediaItem({ targetId }) {
-            console.log('Shop The Look - Setting Media Item:', targetId);
             const media = await this.mediaRepository.get(targetId);
             this.element.config.lookImage.value = media;
-            console.log('Shop The Look - Media Item Set:', media);
             this.onElementUpdate();
         },
 
@@ -209,9 +185,7 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
         },
 
         onRemoveImage() {
-            console.log('Shop The Look - Image Removed');
             this.element.config.lookImage.value = null;
-            console.log('Shop The Look - Look Image After Remove:', this.element.config.lookImage.value);
             this.onElementUpdate();
         }
     }
