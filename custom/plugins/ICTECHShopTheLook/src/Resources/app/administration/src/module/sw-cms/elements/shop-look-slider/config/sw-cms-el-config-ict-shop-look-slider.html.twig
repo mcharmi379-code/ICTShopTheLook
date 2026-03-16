@@ -44,6 +44,7 @@
                 <mt-select
                     v-model="element.config.navigationArrows.value"
                     :label="$t('sw-cms.elements.imageSlider.config.label.navigationArrows')"
+                    help-text="Choose where the previous/next arrows appear: inside the slider, outside, or hidden."
                     :options="navigationArrowsValueOptions"
                     @update:model-value="emitUpdateEl"
                 />
@@ -51,6 +52,7 @@
                 <mt-select
                     v-model="element.config.navigationDots.value"
                     :label="$t('sw-cms.elements.imageSlider.config.label.navigationDots')"
+                    help-text="Choose where the dot indicators appear: inside the slider, outside, or hidden."
                     :options="navigationDotsValueOptions"
                     @update:model-value="emitUpdateEl"
                 />
@@ -58,6 +60,7 @@
                 <mt-number-field
                     v-model="element.config.speed.value"
                     :label="$t('sw-cms.elements.general.config.label.speed')"
+                    help-text="Transition speed between slides in milliseconds (e.g. 300 = 0.3 seconds)."
                     number-type="int"
                     :min="0"
                     :max="3600000"
@@ -66,6 +69,7 @@
                 <mt-switch
                     v-model="element.config.autoSlide.value"
                     :label="$t('sw-cms.elements.general.config.label.autoSlide')"
+                    help-text="When enabled, the slider advances automatically without user interaction."
                     bordered
                     @update:model-value="onChangeAutoSlide"
                 />
@@ -73,6 +77,7 @@
                 <mt-number-field
                     v-model="element.config.autoplayTimeout.value"
                     :label="$t('sw-cms.elements.general.config.label.autoplayTimeout')"
+                    help-text="Time in milliseconds each slide is shown before advancing automatically (requires Auto Slide to be enabled)."
                     number-type="int"
                     :min="0"
                     :max="3600000"
@@ -93,11 +98,13 @@
                         v-model="sliderItem.url"
                         :placeholder="$t('sw-cms.elements.image.config.placeholder.enterUrl')"
                         :label="$t('sw-cms.elements.image.config.label.linkTo')"
+                        help-text="Optional URL to navigate to when this slide image is clicked."
                     />
 
                     <mt-switch
                         v-model="sliderItem.newTab"
                         :label="$t('sw-cms.elements.image.config.label.linkNewTab')"
+                        help-text="When enabled, the link opens in a new browser tab."
                         bordered
                     />
                 </div>
