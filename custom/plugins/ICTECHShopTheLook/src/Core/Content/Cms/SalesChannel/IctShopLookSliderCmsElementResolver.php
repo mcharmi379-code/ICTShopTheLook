@@ -27,7 +27,8 @@ class IctShopLookSliderCmsElementResolver extends AbstractCmsElementResolver
         }
 
         $sliderItems = $sliderItemsConfig->getArrayValue();
-        $mediaIds = array_column($sliderItems, 'mediaId');
+        /** @var list<string> $mediaIds */
+        $mediaIds = array_values(array_filter(array_column($sliderItems, 'mediaId'), 'is_string'));
 
         if (empty($mediaIds)) {
             return null;
@@ -54,8 +55,12 @@ class IctShopLookSliderCmsElementResolver extends AbstractCmsElementResolver
         $mediaResult = $result->get('media_' . $slot->getUniqueIdentifier());
 
         foreach ($sliderItemsValue as &$item) {
-            if (isset($item['mediaId']) && $mediaResult) {
-                $media = $mediaResult->get($item['mediaId']);
+            if (!is_array($item)) {
+                continue;
+            }
+            $mediaId = isset($item['mediaId']) && is_string($item['mediaId']) ? $item['mediaId'] : null;
+            if ($mediaId !== null && $mediaResult) {
+                $media = $mediaResult->get($mediaId);
                 if ($media) {
                     $item['media'] = $media;
                 }
