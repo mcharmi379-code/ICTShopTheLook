@@ -1,10 +1,11 @@
-// Imports
-import PluginManager from 'src/plugin-system/plugin.manager';
-import ShopLookSlider from './plugin/shop-look-slider.plugin';
+import ShopLookSlider from './js/shop-look-slider';
+import './js/shop-the-look';
 
-// Register plugin
-PluginManager.register(
-    'ShopLookSlider',
-    ShopLookSlider,
-    '[data-shop-look-slider]'
-);
+console.log('[ICTECHShopTheLook] main.js loaded');
+
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('[ICTECHShopTheLook] DOMContentLoaded fired');
+    const sliders = document.querySelectorAll('.ict-shop-look-slider');
+    console.log('[ICTECHShopTheLook] Found sliders:', sliders.length);
+    sliders.forEach(el => new ShopLookSlider(el));
+});
