@@ -21,19 +21,26 @@
                         />
                     </div>
                 {% else %}
-                    <div class="shop-the-look-main-image" style="position: relative;">
+                    {% if config.imageWidth and config.imageHeight %}
+                        {% set imgW = config.imageWidth %}
+                        {% set imgH = config.imageHeight %}
+                    {% elseif config.imageDimension and config.imageDimension != 'custom' %}
+                        {% set dimensions = config.imageDimension|split('x') %}
+                        {% set imgW = dimensions[0] %}
+                        {% set imgH = dimensions[1] %}
+                    {% elseif config.customWidth and config.customHeight %}
+                        {% set imgW = config.customWidth %}
+                        {% set imgH = config.customHeight %}
+                    {% else %}
+                        {% set imgW = null %}
+                        {% set imgH = null %}
+                    {% endif %}
+                    <div class="shop-the-look-main-image" style="position: relative; display: inline-block;{% if imgW and imgH %} width: {{ imgW }}px; height: {{ imgH }}px;{% endif %}">
                         <img 
                             src="{{ lookImage.url }}" 
                             alt="Shop The Look"
                             class="main-look-image"
-                            {% if config.imageWidth and config.imageHeight %}
-                                width="{{ config.imageWidth }}" height="{{ config.imageHeight }}"
-                            {% elseif config.imageDimension and config.imageDimension != 'custom' %}
-                                {% set dimensions = config.imageDimension|split('x') %}
-                                width="{{ dimensions[0] }}" height="{{ dimensions[1] }}"
-                            {% elseif config.customWidth and config.customHeight %}
-                                width="{{ config.customWidth }}" height="{{ config.customHeight }}"
-                            {% endif %}
+                            style="{% if imgW and imgH %}width: {{ imgW }}px; height: {{ imgH }}px; object-fit: cover;{% else %}width: 100%; height: auto;{% endif %}"
                         />
                         
                         {% if hotspots %}
