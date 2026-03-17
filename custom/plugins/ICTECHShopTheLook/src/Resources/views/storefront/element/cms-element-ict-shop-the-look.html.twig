@@ -341,19 +341,28 @@
                     {% if config.addAllToCart and hotspots|length > 1 %}
                         <div class="add-all-section">
                             <form action="{{ path('frontend.checkout.line-item.add') }}" method="post" class="add-all-form" data-add-to-cart="true">
+                                {% set productQuantities = {} %}
                                 {% for hotspot in hotspots %}
-                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][id]" value="{{ hotspot.product.id }}" class="product-line-item" data-product-id="{{ hotspot.product.id }}">
-                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][type]" value="product" class="product-line-item" data-product-id="{{ hotspot.product.id }}">
-                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][referencedId]" value="{{ hotspot.product.id }}" class="product-line-item" data-product-id="{{ hotspot.product.id }}">
-                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][quantity]" value="1" class="product-line-item" data-product-id="{{ hotspot.product.id }}">
-                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][stackable]" value="1" class="product-line-item" data-product-id="{{ hotspot.product.id }}">
-                                    <input type="hidden" name="lineItems[{{ hotspot.product.id }}][removable]" value="1" class="product-line-item" data-product-id="{{ hotspot.product.id }}">
-                                    
-                                    <!-- Add default options for each product -->
-                                    {% if hotspot.product.options %}
-                                        {% for option in hotspot.product.options %}
-                                            <input type="hidden" name="lineItems[{{ hotspot.product.id }}][payload][options][{{ option.id }}]" value="{{ option.id }}" class="product-line-item default-option" data-product-id="{{ hotspot.product.id }}">
-                                        {% endfor %}
+                                    {% set pid = hotspot.product.id %}
+                                    {% set qty = productQuantities[pid] is defined ? productQuantities[pid] + 1 : 1 %}
+                                    {% set productQuantities = productQuantities|merge({(pid): qty}) %}
+                                {% endfor %}
+                                {% set renderedIds = [] %}
+                                {% for hotspot in hotspots %}
+                                    {% set pid = hotspot.product.id %}
+                                    {% if pid not in renderedIds %}
+                                        {% set renderedIds = renderedIds|merge([pid]) %}
+                                        <input type="hidden" name="lineItems[{{ pid }}][id]" value="{{ pid }}" class="product-line-item" data-product-id="{{ pid }}">
+                                        <input type="hidden" name="lineItems[{{ pid }}][type]" value="product" class="product-line-item" data-product-id="{{ pid }}">
+                                        <input type="hidden" name="lineItems[{{ pid }}][referencedId]" value="{{ pid }}" class="product-line-item" data-product-id="{{ pid }}">
+                                        <input type="hidden" name="lineItems[{{ pid }}][quantity]" value="{{ productQuantities[pid] }}" class="product-line-item" data-product-id="{{ pid }}">
+                                        <input type="hidden" name="lineItems[{{ pid }}][stackable]" value="1" class="product-line-item" data-product-id="{{ pid }}">
+                                        <input type="hidden" name="lineItems[{{ pid }}][removable]" value="1" class="product-line-item" data-product-id="{{ pid }}">
+                                        {% if hotspot.product.options %}
+                                            {% for option in hotspot.product.options %}
+                                                <input type="hidden" name="lineItems[{{ pid }}][payload][options][{{ option.id }}]" value="{{ option.id }}" class="product-line-item default-option" data-product-id="{{ pid }}">
+                                            {% endfor %}
+                                        {% endif %}
                                     {% endif %}
                                 {% endfor %}
                                 

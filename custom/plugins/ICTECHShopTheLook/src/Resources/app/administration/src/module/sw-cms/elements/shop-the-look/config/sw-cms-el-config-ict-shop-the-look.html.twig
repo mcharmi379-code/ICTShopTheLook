@@ -175,12 +175,6 @@
 
             <div v-show="active === 'settings'">
 
-                <mt-text-field
-                    v-model="element.config.productListWidth.value"
-                    :label="$tc('ict-shop-the-look.config.label.productListWidth')"
-                    help-text="CSS width of the product panel, e.g. 300px or 30%. Applies to side-by-side layouts."
-                    @update:model-value="$emit('element-update', element)"
-                />
 
                 <mt-select
                     v-model="element.config.layoutStyle.value"

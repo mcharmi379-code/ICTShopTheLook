@@ -101,7 +101,7 @@ Component.register('sw-cms-el-config-ict-shop-the-look', {
 
         hasProductError() {
             if (!this.requiresProducts) return false;
-            return this.hotspots.length === 0 || this.hotspots.every(h => !h.productId);
+            return this.hotspots.length === 0 || this.hotspots.some(h => !h.productId);
         },
     },
 

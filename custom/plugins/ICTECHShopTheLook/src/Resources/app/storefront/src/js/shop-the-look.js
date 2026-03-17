@@ -44,7 +44,13 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                 } else {
                 }
                 
-                // Add form inputs
+                // Add form inputs — increment quantity if same variant already added
+                const existingQty = addAllForm.querySelector(`input[name="lineItems[${variantIdToUse}][quantity]"]`);
+                if (existingQty) {
+                    existingQty.value = String(parseInt(existingQty.value, 10) + 1);
+                    return;
+                }
+
                 const inputs = [
                     { name: `lineItems[${variantIdToUse}][id]`, value: variantIdToUse },
                     { name: `lineItems[${variantIdToUse}][type]`, value: 'product' },
@@ -447,9 +453,13 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
             }
             
             function addProductToAddAllForm(addAllForm, originalProductId, variantId, selectedOptions) {
+                // If this variantId already exists in the form, just increment its quantity
+                const existingQty = addAllForm.querySelector(`input[name="lineItems[${variantId}][quantity]"]`);
+                if (existingQty) {
+                    existingQty.value = String(parseInt(existingQty.value, 10) + 1);
+                    return;
+                }
 
-                
-                // Create complete set of inputs for this product/variant
                 const inputs = [
                     { name: `lineItems[${variantId}][id]`, value: variantId },
                     { name: `lineItems[${variantId}][type]`, value: 'product' },
@@ -458,7 +468,7 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                     { name: `lineItems[${variantId}][stackable]`, value: '1' },
                     { name: `lineItems[${variantId}][removable]`, value: '1' }
                 ];
-                
+
                 inputs.forEach(inputData => {
                     const input = document.createElement('input');
                     input.type = 'hidden';
@@ -468,8 +478,7 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                     input.setAttribute('data-product-id', originalProductId);
                     addAllForm.appendChild(input);
                 });
-                
-                // Add option inputs for selected variants
+
                 selectedOptions.forEach(optionId => {
                     const optionInput = document.createElement('input');
                     optionInput.type = 'hidden';
