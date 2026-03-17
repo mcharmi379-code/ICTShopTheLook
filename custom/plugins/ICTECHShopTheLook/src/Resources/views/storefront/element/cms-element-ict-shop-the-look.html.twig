@@ -285,6 +285,7 @@
                                             {
                                                 "id": "{{ variant.id }}",
                                                 "name": "{{ variant.name }}",
+                                                "inStock": {{ variant.inStock ? 'true' : 'false' }},
                                                 "options": [
                                                     {% for optionId in variant.options %}
                                                         "{{ optionId }}"{% if not loop.last %},{% endif %}

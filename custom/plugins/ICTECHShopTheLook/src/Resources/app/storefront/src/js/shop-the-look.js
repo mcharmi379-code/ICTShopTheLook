@@ -215,33 +215,33 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                         if (matchingVariant) {
                             // Update individual form
                             if (individualForm) {
-                                updateFormForVariant(individualForm, matchingVariant.id, selectedOptions);
+                                updateFormForVariant(individualForm, matchingVariant.id, selectedOptions, matchingVariant.inStock);
                             }
-                            // Update add all form
-                            if (addAllForm) {
+                            // Update add all form — skip if out of stock
+                            if (addAllForm && matchingVariant.inStock !== false) {
                                 updateAddAllFormForProduct(addAllForm, productId, matchingVariant.id, selectedOptions);
-                                // Also refresh the entire add-all form to ensure consistency
+                                updateAddAllButton();
+                            } else if (addAllForm) {
+                                updateAddAllFormForProduct(addAllForm, productId, null, []);
                                 updateAddAllButton();
                             }
                         } else {
-                            // No exact match found, using best match or first variant
-                            // Fallback: find variant with most matching options
                             let bestMatch = findBestMatchingVariant(variantData.variants, selectedOptions);
                             if (bestMatch) {
                                 if (individualForm) {
-                                    updateFormForVariant(individualForm, bestMatch.id, selectedOptions);
+                                    updateFormForVariant(individualForm, bestMatch.id, selectedOptions, bestMatch.inStock);
                                 }
                                 if (addAllForm) {
-                                    updateAddAllFormForProduct(addAllForm, productId, bestMatch.id, selectedOptions);
+                                    updateAddAllFormForProduct(addAllForm, productId, bestMatch.inStock !== false ? bestMatch.id : null, selectedOptions);
                                     updateAddAllButton();
                                 }
                             } else if (variantData.variants.length > 0) {
-                                // Last resort: use first variant
+                                const first = variantData.variants[0];
                                 if (individualForm) {
-                                    updateFormForVariant(individualForm, variantData.variants[0].id, selectedOptions);
+                                    updateFormForVariant(individualForm, first.id, selectedOptions, first.inStock);
                                 }
                                 if (addAllForm) {
-                                    updateAddAllFormForProduct(addAllForm, productId, variantData.variants[0].id, selectedOptions);
+                                    updateAddAllFormForProduct(addAllForm, productId, first.inStock !== false ? first.id : null, selectedOptions);
                                     updateAddAllButton();
                                 }
                             }
@@ -304,14 +304,29 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                 return bestMatch;
             }
             
-            function updateFormForVariant(form, variantId, selectedOptions) {
-                
+            function updateFormForVariant(form, variantId, selectedOptions, variantInStock) {
                 // Remove all existing lineItems inputs
-                form.querySelectorAll('input[name*="lineItems["]').forEach(input => {
-                    input.remove();
-                });
-                
-                // Create complete new set of inputs for the variant
+                form.querySelectorAll('input[name*="lineItems["]').forEach(input => input.remove());
+
+                const addBtn = form.querySelector('.add-single-to-cart');
+                const outOfStockMsg = form.closest('.individual-add-to-cart').querySelector('.variant-out-of-stock-message');
+
+                if (variantInStock === false) {
+                    if (addBtn) { addBtn.disabled = true; addBtn.style.opacity = '0.5'; }
+                    if (!outOfStockMsg) {
+                        const msg = document.createElement('div');
+                        msg.className = 'variant-out-of-stock-message out-of-stock-message';
+                        msg.style.marginTop = '6px';
+                        msg.textContent = 'Selected size is out of stock';
+                        form.closest('.individual-add-to-cart').appendChild(msg);
+                    }
+                    return;
+                }
+
+                // In stock — clear any message and re-enable button
+                if (addBtn) { addBtn.disabled = false; addBtn.style.opacity = ''; }
+                if (outOfStockMsg) outOfStockMsg.remove();
+
                 const inputs = [
                     { name: `lineItems[${variantId}][id]`, value: variantId },
                     { name: `lineItems[${variantId}][type]`, value: 'product' },
@@ -320,7 +335,6 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                     { name: `lineItems[${variantId}][stackable]`, value: '1' },
                     { name: `lineItems[${variantId}][removable]`, value: '1' }
                 ];
-                
                 inputs.forEach(inputData => {
                     const input = document.createElement('input');
                     input.type = 'hidden';
@@ -328,8 +342,6 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                     input.value = inputData.value;
                     form.appendChild(input);
                 });
-                
-                // Add option inputs for selected variants
                 selectedOptions.forEach(optionId => {
                     const optionInput = document.createElement('input');
                     optionInput.type = 'hidden';
@@ -338,23 +350,19 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                     optionInput.classList.add('variant-option');
                     form.appendChild(optionInput);
                 });
-                
             }
             
             function updateAddAllFormForProduct(addAllForm, originalProductId, variantId, selectedOptions) {
-                
-                // Remove all existing inputs for this product (both original and variant)
-                addAllForm.querySelectorAll(`input[data-product-id="${originalProductId}"]`).forEach(input => {
-                    input.remove();
-                });
-                addAllForm.querySelectorAll(`input[name*="[${originalProductId}]"]`).forEach(input => {
-                    input.remove();
-                });
-                addAllForm.querySelectorAll(`input[name*="[${variantId}]"]`).forEach(input => {
-                    input.remove();
-                });
-                
-                // Create complete new set of inputs for the variant
+                // Remove all existing inputs for this product
+                addAllForm.querySelectorAll(`input[data-product-id="${originalProductId}"]`).forEach(input => input.remove());
+                addAllForm.querySelectorAll(`input[name*="[${originalProductId}]"]`).forEach(input => input.remove());
+                if (variantId) {
+                    addAllForm.querySelectorAll(`input[name*="[${variantId}]"]`).forEach(input => input.remove());
+                }
+
+                // null variantId means out-of-stock — just remove, don't re-add
+                if (!variantId) return;
+
                 const inputs = [
                     { name: `lineItems[${variantId}][id]`, value: variantId },
                     { name: `lineItems[${variantId}][type]`, value: 'product' },
@@ -363,7 +371,6 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                     { name: `lineItems[${variantId}][stackable]`, value: '1' },
                     { name: `lineItems[${variantId}][removable]`, value: '1' }
                 ];
-                
                 inputs.forEach(inputData => {
                     const input = document.createElement('input');
                     input.type = 'hidden';
@@ -373,8 +380,6 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                     input.setAttribute('data-product-id', originalProductId);
                     addAllForm.appendChild(input);
                 });
-                
-                // Add option inputs for selected variants
                 selectedOptions.forEach(optionId => {
                     const optionInput = document.createElement('input');
                     optionInput.type = 'hidden';
@@ -384,7 +389,6 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                     optionInput.setAttribute('data-product-id', originalProductId);
                     addAllForm.appendChild(optionInput);
                 });
-                
             }
             
             function updateAddAllButton() {
@@ -517,22 +521,15 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                 const variantDataScript = container.querySelector(`.variant-data[data-product-id="${productId}"]`);
                 
                 if (variantDataScript && selectedOptions.length > 0) {
-                    // This product has variants - find the correct one
                     const variantData = JSON.parse(variantDataScript.textContent);
                     let matchingVariant = findMatchingVariant(variantData.variants, selectedOptions);
-                    
-                    if (!matchingVariant) {
-                        matchingVariant = findBestMatchingVariant(variantData.variants, selectedOptions);
-                    }
-                    
+                    if (!matchingVariant) matchingVariant = findBestMatchingVariant(variantData.variants, selectedOptions);
                     if (matchingVariant) {
-                        // Update individual form
                         if (individualForm) {
-                            updateFormForVariant(individualForm, matchingVariant.id, selectedOptions);
+                            updateFormForVariant(individualForm, matchingVariant.id, selectedOptions, matchingVariant.inStock);
                         }
-                        // Update add all form
                         if (addAllForm) {
-                            updateAddAllFormForProduct(addAllForm, productId, matchingVariant.id, selectedOptions);
+                            updateAddAllFormForProduct(addAllForm, productId, matchingVariant.inStock !== false ? matchingVariant.id : null, selectedOptions);
                         }
                     }
                 } else if (selectedOptions.length > 0) {

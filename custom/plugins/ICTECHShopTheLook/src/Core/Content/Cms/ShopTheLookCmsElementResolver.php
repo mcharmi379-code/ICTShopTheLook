@@ -124,10 +124,12 @@ class ShopTheLookCmsElementResolver extends AbstractCmsElementResolver
                                         $childOptions[] = $option->getId();
                                     }
                                 }
+                                $availableStock = $child->getAvailableStock() ?? $child->getStock() ?? 0;
                                 $variantMappingData[] = [
                                     'id' => $child->getId(),
                                     'name' => $child->getTranslated()['name'] ?? $child->getName(),
-                                    'options' => $childOptions
+                                    'options' => $childOptions,
+                                    'inStock' => $child->getActive() && $availableStock > 0,
                                 ];
                             }
                         }
