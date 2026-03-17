@@ -361,7 +361,7 @@
                                 <input type="hidden" name="redirectTo" value="frontend.cms.page">
                                 <input type="hidden" name="redirectParameters" value='{{ {"id": page.cmsPage.id}|json_encode }}'>
                                 
-                                <button type="submit" class="btn btn-primary btn-lg add-all-to-cart" onclick="rebuildAddAllForm()">
+                                <button type="submit" class="btn btn-primary btn-lg add-all-to-cart" onclick="rebuildAddAllForm(this)">
                                     ADD TO CART 
                                 </button>
                             </form>

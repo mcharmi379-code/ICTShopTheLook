@@ -1,16 +1,14 @@
-window.rebuildAddAllForm = function rebuildAddAllForm() {
-    alert('Rebuild Add All Form called');
-            const addAllForm = document.querySelector('.add-all-form');
+window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
+            const container = btn.closest('.cms-element-ict-shop-the-look');
+            if (!container) return;
+            const addAllForm = container.querySelector('.add-all-form');
             if (!addAllForm) return;
             
-            
-            // Remove all existing product inputs
             addAllForm.querySelectorAll('.product-line-item, .variant-option').forEach(input => {
                 input.remove();
             });
             
-            // Get all checked products
-            const checkedProducts = document.querySelectorAll('.product-select-checkbox:checked');
+            const checkedProducts = container.querySelectorAll('.product-select-checkbox:checked');
             
             checkedProducts.forEach((checkbox, index) => {
                 const productId = checkbox.dataset.productId;
@@ -26,7 +24,7 @@ window.rebuildAddAllForm = function rebuildAddAllForm() {
                 });
                 
                 // Check for variant data
-                const variantDataScript = document.querySelector(`.variant-data[data-product-id="${productId}"]`);
+                const variantDataScript = container.querySelector(`.variant-data[data-product-id="${productId}"]`);
                 let variantIdToUse = productId;
                 
                 if (variantDataScript && selectedOptions.length > 0) {
@@ -112,9 +110,15 @@ window.rebuildAddAllForm = function rebuildAddAllForm() {
         }
         
         document.addEventListener('DOMContentLoaded', function() {
+
+            // Scope all queries to the nearest shop-the-look container
+            const containers = document.querySelectorAll('.cms-element-ict-shop-the-look');
+            containers.forEach(function(container) { initContainer(container); });
+
+            function initContainer(container) {
             
             // Product checkbox functionality
-            document.querySelectorAll('.product-select-checkbox').forEach(checkbox => {
+            container.querySelectorAll('.product-select-checkbox').forEach(checkbox => {
                 checkbox.addEventListener('change', function() {
                     const productItem = this.closest('.product-item');
                     const form = productItem.querySelector('.add-to-cart-form');
@@ -133,14 +137,14 @@ window.rebuildAddAllForm = function rebuildAddAllForm() {
             });
             
             // Hotspot click to show popup and highlight product
-            document.querySelectorAll('.shop-the-look-hotspot').forEach(hotspot => {
+            container.querySelectorAll('.shop-the-look-hotspot').forEach(hotspot => {
                 hotspot.addEventListener('click', function(e) {
                     e.stopPropagation();
                     const productId = this.dataset.productId;
-                    const productItem = document.querySelector(`.product-item[data-product-id="${productId}"]`);
+                    const productItem = container.querySelector(`.product-item[data-product-id="${productId}"]`);
                     
                     // Close all other popups
-                    document.querySelectorAll('.shop-the-look-hotspot').forEach(h => {
+                    container.querySelectorAll('.shop-the-look-hotspot').forEach(h => {
                         h.classList.remove('active');
                     });
                     
@@ -148,7 +152,7 @@ window.rebuildAddAllForm = function rebuildAddAllForm() {
                     this.classList.toggle('active');
                     
                     // Remove previous highlights
-                    document.querySelectorAll('.product-item').forEach(item => {
+                    container.querySelectorAll('.product-item').forEach(item => {
                         item.classList.remove('highlighted');
                     });
                     
@@ -162,20 +166,20 @@ window.rebuildAddAllForm = function rebuildAddAllForm() {
             
             // Close popups when clicking outside
             document.addEventListener('click', function() {
-                document.querySelectorAll('.shop-the-look-hotspot').forEach(hotspot => {
+                container.querySelectorAll('.shop-the-look-hotspot').forEach(hotspot => {
                     hotspot.classList.remove('active');
                 });
-                document.querySelectorAll('.product-item').forEach(item => {
+                container.querySelectorAll('.product-item').forEach(item => {
                     item.classList.remove('highlighted');
                 });
             });
             
             // Handle variant selection for individual forms
-            document.querySelectorAll('.variant-radio').forEach(radio => {
+            container.querySelectorAll('.variant-radio').forEach(radio => {
                 radio.addEventListener('change', function() {
                     const productId = this.dataset.productId;
                     const individualForm = this.closest('.product-item').querySelector('.add-to-cart-form');
-                    const addAllForm = document.querySelector('.add-all-form');
+                    const addAllForm = container.querySelector('.add-all-form');
                     
                     if (!productId) {
                         return;
@@ -183,7 +187,7 @@ window.rebuildAddAllForm = function rebuildAddAllForm() {
                     
                     
                     // Get variant data for this product
-                    const variantDataScript = document.querySelector(`.variant-data[data-product-id="${productId}"]`);
+                    const variantDataScript = container.querySelector(`.variant-data[data-product-id="${productId}"]`);
                     
                     if (variantDataScript) {
                         // This product has variants - find the correct one
@@ -378,9 +382,9 @@ window.rebuildAddAllForm = function rebuildAddAllForm() {
             }
             
             function updateAddAllButton() {
-                const checkedProducts = document.querySelectorAll('.product-select-checkbox:checked');
-                const addAllButton = document.querySelector('.add-all-to-cart');
-                const addAllForm = document.querySelector('.add-all-form');
+                const checkedProducts = container.querySelectorAll('.product-select-checkbox:checked');
+                const addAllButton = container.querySelector('.add-all-to-cart');
+                const addAllForm = container.querySelector('.add-all-form');
                 
                 
                 if (addAllButton && addAllForm) {
@@ -412,7 +416,7 @@ window.rebuildAddAllForm = function rebuildAddAllForm() {
                             
                             
                             // Check if this product has variant data
-                            const variantDataScript = document.querySelector(`.variant-data[data-product-id="${productId}"]`);
+                            const variantDataScript = container.querySelector(`.variant-data[data-product-id="${productId}"]`);
                             
                             if (variantDataScript && selectedOptions.length > 0) {
                                 // This product has variants - find the correct one
@@ -478,7 +482,7 @@ window.rebuildAddAllForm = function rebuildAddAllForm() {
             }
             
             // Initialize forms with correct variant data on page load
-            document.querySelectorAll('.product-item').forEach(productItem => {
+            container.querySelectorAll('.product-item').forEach(productItem => {
                 const productId = productItem.dataset.productId;
                 
                 if (productId) {
@@ -489,7 +493,7 @@ window.rebuildAddAllForm = function rebuildAddAllForm() {
             
             function initializeProductVariants(productItem, productId) {
                 const individualForm = productItem.querySelector('.add-to-cart-form');
-                const addAllForm = document.querySelector('.add-all-form');
+                const addAllForm = container.querySelector('.add-all-form');
                 
                 // Get currently selected options for this product
                 const selectedOptions = [];
@@ -501,7 +505,7 @@ window.rebuildAddAllForm = function rebuildAddAllForm() {
                 
                 
                 // Check if this product has variant data
-                const variantDataScript = document.querySelector(`.variant-data[data-product-id="${productId}"]`);
+                const variantDataScript = container.querySelector(`.variant-data[data-product-id="${productId}"]`);
                 
                 if (variantDataScript && selectedOptions.length > 0) {
                     // This product has variants - find the correct one
@@ -540,4 +544,6 @@ window.rebuildAddAllForm = function rebuildAddAllForm() {
             
             // Initialize
             updateAddAllButton();
+
+            } // end initContainer
         });
