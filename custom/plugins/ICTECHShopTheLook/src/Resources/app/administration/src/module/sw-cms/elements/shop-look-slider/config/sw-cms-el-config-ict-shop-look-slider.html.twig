@@ -94,12 +94,17 @@
                         style="width:60px;height:60px;object-fit:cover;margin-bottom:10px;"
                     >
 
-                    <mt-url-field
-                        v-model="sliderItem.url"
-                        :placeholder="$t('sw-cms.elements.image.config.placeholder.enterUrl')"
+                    <mt-select
+                        :value="sliderItem.url"
                         :label="$t('sw-cms.elements.image.config.label.linkTo')"
-                        help-text="Optional URL to navigate to when this slide image is clicked."
+                        :options="seoUrlOptions"
+                        :placeholder="seoUrlOptions.length ? 'Select a page URL...' : 'Loading URLs...'"
+                        @update:model-value="onUrlChange(index, $event)"
                     />
+
+                    <div v-if="sliderItem.url" style="margin-top:4px;padding:4px 8px;background:#f5f5f5;border-radius:3px;word-break:break-all;">
+                        <small style="color:#555;">{{ sliderItem.url }}</small>
+                    </div>
 
                     <mt-switch
                         v-model="sliderItem.newTab"

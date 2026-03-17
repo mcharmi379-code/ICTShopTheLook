@@ -20,7 +20,8 @@ Component.register('sw-cms-el-config-ict-shop-look-slider', {
         return {
             mediaModalIsOpen: false,
             entity: this.element,
-            mediaItems: []
+            mediaItems: [],
+            seoUrlOptions: []
         };
     },
 
@@ -31,6 +32,14 @@ Component.register('sw-cms-el-config-ict-shop-look-slider', {
 
         mediaRepository() {
             return this.repositoryFactory.create('media');
+        },
+
+        salesChannelDomainRepository() {
+            return this.repositoryFactory.create('sales_channel_domain');
+        },
+
+        seoUrlRepository() {
+            return this.repositoryFactory.create('seo_url');
         },
 
         defaultFolderName() {
@@ -69,6 +78,7 @@ Component.register('sw-cms-el-config-ict-shop-look-slider', {
     created() {
         this.initElementConfig('ict-shop-look-slider');
         this.initSliderItems();
+        this.loadSeoUrls();
     },
 
     methods: {
@@ -169,6 +179,38 @@ Component.register('sw-cms-el-config-ict-shop-look-slider', {
 
         emitUpdateEl() {
             this.$emit('element-update', this.element);
+        },
+
+        async loadSeoUrls() {
+            // Get storefront domain URL (exclude headless/non-http)
+            const domainCriteria = new Criteria(1, 25);
+            domainCriteria.addFilter(Criteria.contains('url', 'http'));
+            const domains = await this.salesChannelDomainRepository.search(domainCriteria, Shopware.Context.api);
+            const storefrontDomain = domains.find(d => d.url && d.url.startsWith('http') && !d.url.includes('https'))
+                || domains.find(d => d.url && d.url.startsWith('http'));
+            const base = storefrontDomain?.url?.replace(/\/$/, '') || '';
+
+            const criteria = new Criteria(1, 500);
+            criteria.addFilter(Criteria.equals('isCanonical', true));
+            criteria.addFilter(Criteria.equals('isDeleted', false));
+            criteria.addSorting(Criteria.sort('seoPathInfo', 'ASC'));
+
+            const result = await this.seoUrlRepository.search(criteria, Shopware.Context.api);
+            const seen = new Set();
+            this.seoUrlOptions = result.reduce((acc, seoUrl) => {
+                const fullUrl = `${base}/${seoUrl.seoPathInfo}`;
+                if (!seen.has(fullUrl)) {
+                    seen.add(fullUrl);
+                    acc.push({ value: fullUrl, label: fullUrl });
+                }
+                return acc;
+            }, []);
+        },
+
+        onUrlChange(index, value) {
+            this.element.config.sliderItems.value[index].url = value || null;
+            this.updateMediaDataValue();
+            this.emitUpdateEl();
         },
 
         onChangeAutoSlide(value) {
