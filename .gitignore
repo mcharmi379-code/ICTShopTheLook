@@ -18,3 +18,7 @@
 /install.lock
 /public/asset-manifest.json
 ###< shopware/core ###
+
+###> phpstan/phpstan ###
+phpstan.neon
+###< phpstan/phpstan ###
