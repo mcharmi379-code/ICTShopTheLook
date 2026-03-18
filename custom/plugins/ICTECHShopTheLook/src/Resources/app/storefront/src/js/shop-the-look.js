@@ -89,37 +89,6 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
             
         }
         
-        window.debugFormData = debugFormData;
-
-        // Debug function to check current selections
-        function debugCurrentSelections() {
-            document.querySelectorAll('.product-item').forEach((productItem, index) => {
-                const productId = productItem.dataset.productId;
-                
-                productItem.querySelectorAll('.variant-radio').forEach(radio => {
-                });
-            });
-        }
-        
-        // Debug function to show form data before submission
-        function debugFormData(button) {
-            const form = button.closest('form');
-            const formData = new FormData(form);
-            
-            // Get product ID from button or form context
-            let productId = button.dataset.productId;
-            if (!productId && form.classList.contains('add-all-form')) {
-                productId = 'multiple products';
-            }
-            
-            
-            for (let [key, value] of formData.entries()) {
-            }
-            
-            form.querySelectorAll('input').forEach(input => {
-            });
-        }
-        
         document.addEventListener('DOMContentLoaded', function() {
 
             // Scope all queries to the nearest shop-the-look container
@@ -322,7 +291,11 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                         const msg = document.createElement('div');
                         msg.className = 'variant-out-of-stock-message out-of-stock-message';
                         msg.style.marginTop = '6px';
-                        msg.textContent = 'Selected size is out of stock';
+                        const container = form.closest('.cms-element-ict-shop-the-look');
+                        const addAllBtn = container ? container.querySelector('.add-all-to-cart') : null;
+                        msg.textContent = (addAllBtn && addAllBtn.dataset.labelOutOfStock)
+                            ? addAllBtn.dataset.labelOutOfStock
+                            : 'Selected size is out of stock';
                         form.closest('.individual-add-to-cart').appendChild(msg);
                     }
                     return;
@@ -403,12 +376,14 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                 
                 
                 if (addAllButton && addAllForm) {
+                    const labelSelect = addAllButton.dataset.labelSelect || 'Select Products';
+                    const labelAdd = addAllButton.dataset.labelAdd || 'Add %count% to Cart';
                     if (checkedProducts.length === 0) {
                         addAllButton.disabled = true;
-                        addAllButton.textContent = 'SELECT PRODUCTS';
+                        addAllButton.textContent = labelSelect;
                     } else {
                         addAllButton.disabled = false;
-                        addAllButton.textContent = `ADD ${checkedProducts.length} TO CART`;
+                        addAllButton.textContent = labelAdd.replace('%count%', checkedProducts.length);
                         
                         // Remove all existing product inputs from add-all form
                         addAllForm.querySelectorAll('.product-line-item, .variant-option').forEach(input => {
@@ -459,9 +434,7 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                             }
                         });
                         
-                        addAllForm.querySelectorAll('input[name*="lineItems"]').forEach(input => {
 
-                        });
                     }
                 }
             }

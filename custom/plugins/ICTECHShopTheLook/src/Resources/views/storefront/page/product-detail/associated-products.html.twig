@@ -3,16 +3,16 @@
 
 {% if shopTheLookData and shopTheLookData.relatedLooks and shopTheLookData.relatedLooks|length > 0 %}
 <div class="shop-the-look-associated-products">
-    <h3 class="mb-3">Complete The Look</h3>
+    <h3 class="mb-3">{{ 'shop-the-look.associatedProducts.title'|trans }}</h3>
     <div class="table-responsive">
         <table class="table table-hover">
             <thead class="table-light">
                 <tr>
-                    <th scope="col">Image</th>
-                    <th scope="col">Product</th>
-                    <th scope="col">Variants</th>
-                    <th scope="col">Price</th>
-                    <th scope="col">Action</th>
+                    <th scope="col">{{ 'shop-the-look.associatedProducts.image'|trans }}</th>
+                    <th scope="col">{{ 'shop-the-look.associatedProducts.product'|trans }}</th>
+                    <th scope="col">{{ 'shop-the-look.associatedProducts.variants'|trans }}</th>
+                    <th scope="col">{{ 'shop-the-look.associatedProducts.price'|trans }}</th>
+                    <th scope="col">{{ 'shop-the-look.associatedProducts.action'|trans }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -42,10 +42,11 @@
                                     <select class="form-control form-select variant-selector" 
                                             data-product-id="{{ product.id }}"
                                             onchange="updateSelectedVariant('{{ product.id }}', this.value)">
-                                        <option value="">Select Variant</option>
+                                        <option value="">{{ 'shop-the-look.associatedProducts.selectVariant'|trans }}</option>
                                         {% for variant in product.variants %}
                                             <option value="{{ variant.id }}" 
                                                     data-price="{{ variant.price.first.gross }}"
+                                                    data-formatted-price="{{ variant.price.first.gross|currency }}"
                                                     data-stock="{{ variant.stock }}"
                                                     {% if loop.first %}selected{% endif %}>
                                                 {% for option in variant.options %}
@@ -56,7 +57,7 @@
                                         {% endfor %}
                                     </select>
                                 {% else %}
-                                    <span class="text-muted">No Variants</span>
+                                    <span class="text-muted">{{ 'shop-the-look.associatedProducts.noVariants'|trans }}</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -80,7 +81,7 @@
                                         <input type="hidden" name="redirectParameters" value='{{ {"productId": page.product.id}|json_encode }}'>
                                         <button type="submit" class="btn btn-primary btn-sm add-to-cart-btn" 
                                                 id="add-to-cart-{{ product.id }}">
-                                            Add to Cart
+                                            {{ 'shop-the-look.associatedProducts.addToCart'|trans }}
                                         </button>
                                     {% else %}
                                         <input type="hidden" name="lineItems[{{ product.id }}][id]" value="{{ product.id }}">
@@ -92,7 +93,7 @@
                                         <input type="hidden" name="redirectTo" value="frontend.detail.page">
                                         <input type="hidden" name="redirectParameters" value='{{ {"productId": page.product.id}|json_encode }}'>
                                         <button type="submit" class="btn btn-primary btn-sm add-to-cart-btn">
-                                            Add to Cart
+                                            {{ 'shop-the-look.associatedProducts.addToCart'|trans }}
                                         </button>
                                     {% endif %}
                                 </form>
@@ -165,8 +166,8 @@ function updateSelectedVariant(productId, variantId) {
         const select = document.querySelector(`[data-product-id="${productId}"]`);
         const selectedOption = select.querySelector(`option[value="${variantId}"]`);
         if (selectedOption) {
-            const newPrice = selectedOption.dataset.price;
-            priceDisplay.textContent = newPrice ? '€' + parseFloat(newPrice).toFixed(2) : priceDisplay.dataset.basePrice ? '€' + parseFloat(priceDisplay.dataset.basePrice).toFixed(2) : '';
+            const formattedPrice = selectedOption.dataset.formattedPrice;
+            priceDisplay.textContent = formattedPrice ?? '';
         }
     }
 }

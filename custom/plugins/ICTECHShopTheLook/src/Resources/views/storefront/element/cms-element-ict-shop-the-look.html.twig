@@ -81,7 +81,7 @@
                                                     <div class="popup-price">{{ hotspot.formattedPrice }}</div>
                                                 {% endif %}
                                                 <a href="{{ seoUrl('frontend.detail.page', {'productId': hotspot.product.id}) }}" class="popup-view-button">
-                                                    View Product
+                                                    {{ 'shop-the-look.associatedProducts.viewProduct'|trans }}
                                                 </a>
                                             </div>
                                         </div>
@@ -327,8 +327,8 @@
                                             <input type="hidden" name="redirectTo" value="frontend.cms.page">
                                             <input type="hidden" name="redirectParameters" value='{{ {"id": page.cmsPage.id}|json_encode }}'>
                                             
-                                            <button type="submit" class="btn btn-outline-primary add-single-to-cart" data-product-id="{{ hotspot.product.id }}" onclick="debugFormData(this)">
-                                                Add to Cart
+                                            <button type="submit" class="btn btn-outline-primary add-single-to-cart" data-product-id="{{ hotspot.product.id }}">
+                                                {{ 'shop-the-look.associatedProducts.addToCart'|trans }}
                                             </button>
                                         </form>
                                     </div>
@@ -371,8 +371,12 @@
                                 <input type="hidden" name="redirectTo" value="frontend.cms.page">
                                 <input type="hidden" name="redirectParameters" value='{{ {"id": page.cmsPage.id}|json_encode }}'>
                                 
-                                <button type="submit" class="btn btn-primary btn-lg add-all-to-cart" onclick="rebuildAddAllForm(this)">
-                                    ADD TO CART 
+                                <button type="submit" class="btn btn-primary btn-lg add-all-to-cart"
+                                        data-label-select="{{ 'shop-the-look.associatedProducts.selectProducts'|trans }}"
+                                        data-label-add="{{ 'shop-the-look.associatedProducts.addNToCart'|trans }}"
+                                        data-label-out-of-stock="{{ 'shop-the-look.associatedProducts.outOfStock'|trans }}"
+                                        onclick="rebuildAddAllForm(this)">
+                                    {{ 'shop-the-look.associatedProducts.addAllToCart'|trans }}
                                 </button>
                             </form>
                         </div>

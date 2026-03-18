@@ -1,6 +1,5 @@
 export default class ShopLookSlider {
     constructor(el) {
-        console.log('[ShopLookSlider] constructor called', el);
         this.el = el;
         this.container = el.querySelector('.ict-slider-container');
         this.slides = this.container.querySelectorAll('.ict-slide');

@@ -19,10 +19,12 @@
                     <div class="ict-slide">
                         {% if item.url %}
                             <a href="{{ item.url }}" {% if item.newTab %}target="_blank" rel="noopener"{% endif %}>
-                        {% endif %}
-                        <img src="{{ item.media.url }}" alt="">
-                        {% if item.url %}
+                                <img src="{{ item.media.url }}" alt="">
                             </a>
+                        {% else %}
+                            <span class="ict-slide-no-link" title="No link configured for this slide">
+                                <img src="{{ item.media.url }}" alt="">
+                            </span>
                         {% endif %}
                     </div>
                 {% endif %}
