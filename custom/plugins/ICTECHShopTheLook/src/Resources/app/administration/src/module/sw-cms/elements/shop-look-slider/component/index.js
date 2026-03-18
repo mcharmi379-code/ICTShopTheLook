@@ -1,4 +1,5 @@
 import template from './sw-cms-el-ict-shop-look-slider.html.twig';
+import './sw-cms-el-ict-shop-look-slider.scss';
 
 const { Component, Mixin, Filter } = Shopware;
 

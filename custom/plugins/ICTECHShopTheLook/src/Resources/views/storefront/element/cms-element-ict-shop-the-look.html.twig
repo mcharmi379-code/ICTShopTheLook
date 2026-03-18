@@ -35,12 +35,12 @@
                         {% set imgW = null %}
                         {% set imgH = null %}
                     {% endif %}
-                    <div class="shop-the-look-main-image" style="position: relative; display: inline-block;{% if imgW and imgH %} width: {{ imgW }}px; height: {{ imgH }}px;{% endif %}">
+                    <div class="shop-the-look-main-image" style="position: relative;">
                         <img 
                             src="{{ lookImage.url }}" 
                             alt="Shop The Look"
                             class="main-look-image"
-                            style="{% if imgW and imgH %}width: {{ imgW }}px; height: {{ imgH }}px; object-fit: cover;{% else %}width: 100%; height: auto;{% endif %}"
+                           
                         />
                         
                         {% if hotspots %}
@@ -95,7 +95,7 @@
             </div>
             {% endif %}
             {% if showProducts %}
-            <div class="shop-the-look-products-section">
+            <div class="{% if layoutStyle == 'only-products' %}shop-the-look-only-products-section{% else %}shop-the-look-products-section{% endif %}">
                 {% if hotspots %}
                     <div class="products-list">
                         {% for hotspot in hotspots %}
