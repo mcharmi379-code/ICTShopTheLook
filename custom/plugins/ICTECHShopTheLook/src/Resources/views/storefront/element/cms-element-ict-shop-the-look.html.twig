@@ -77,8 +77,8 @@
                                                 <a href="{{ seoUrl('frontend.detail.page', {'productId': hotspot.product.id}) }}" class="popup-product-link">
                                                     <h4 class="popup-product-name">{{ hotspot.product.translated.name }}</h4>
                                                 </a>
-                                                {% if hotspot.product.calculatedPrice %}
-                                                    <div class="popup-price">{{ hotspot.product.calculatedPrice.unitPrice|currency }}</div>
+                                                {% if hotspot.formattedPrice %}
+                                                    <div class="popup-price">{{ hotspot.formattedPrice }}</div>
                                                 {% endif %}
                                                 <a href="{{ seoUrl('frontend.detail.page', {'productId': hotspot.product.id}) }}" class="popup-view-button">
                                                     View Product
@@ -128,9 +128,9 @@
                                           <a href="{{ seoUrl('frontend.detail.page', {'productId': hotspot.product.id}) }}" class="popup-product-link">
                                             <h4 class="product-name">{{ hotspot.product.translated.name }}</h4> </a>
                                             
-                                            {% if config.showPrices and hotspot.product.calculatedPrice %}
+                                            {% if config.showPrices and hotspot.formattedPrice %}
                                                 <div class="product-price">
-                                                    {{ hotspot.product.calculatedPrice.unitPrice|currency }}
+                                                    {{ hotspot.formattedPrice }}
                                                 </div>
                                             {% endif %}
                                         </div>
@@ -339,7 +339,7 @@
                     </div>
                     
                     <!-- Add All to Cart Button -->
-                    {% if config.addAllToCart and hotspots|length > 1 %}
+                    {% if config.addAllToCart and hotspots|length >= 1 %}
                         <div class="add-all-section">
                             <form action="{{ path('frontend.checkout.line-item.add') }}" method="post" class="add-all-form" data-add-to-cart="true">
                                 {% set productQuantities = {} %}

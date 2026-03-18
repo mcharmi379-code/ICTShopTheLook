@@ -14,7 +14,9 @@ use Shopware\Core\Content\Product\ProductEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\EntitySearchResult;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsAnyFilter;
+use Shopware\Core\System\Currency\CurrencyFormatter;
 use Shopware\Core\System\SalesChannel\Entity\SalesChannelRepository;
+use Shopware\Core\System\SalesChannel\SalesChannelContext;
 
 class ShopTheLookCmsElementResolver extends AbstractCmsElementResolver
 {
@@ -22,7 +24,8 @@ class ShopTheLookCmsElementResolver extends AbstractCmsElementResolver
      * @param SalesChannelRepository<ProductCollection> $productRepository
      */
     public function __construct(
-        private readonly SalesChannelRepository $productRepository
+        private readonly SalesChannelRepository $productRepository,
+        private readonly CurrencyFormatter $currencyFormatter
     ) {
     }
 
@@ -153,6 +156,7 @@ class ShopTheLookCmsElementResolver extends AbstractCmsElementResolver
                     'allVariants' => $allVariants,
                     'variantMappingData' => $variantMappingData,
                     'parentProduct' => $productForVariants,
+                    'formattedPrice' => $this->resolveFormattedPrice($product, $resolverContext->getSalesChannelContext()),
                 ];
             }
         }
@@ -171,6 +175,34 @@ class ShopTheLookCmsElementResolver extends AbstractCmsElementResolver
         ]);
 
         $slot->setData($data);
+    }
+
+    private function resolveFormattedPrice(ProductEntity $product, SalesChannelContext $salesChannelContext): string
+    {
+        $currency = $salesChannelContext->getCurrency();
+        $currencyId = $currency->getId();
+        $factor = $currency->getFactor();
+
+        $price = $product->getCurrencyPrice($currencyId);
+
+        // Fall back to default currency price and apply factor
+        if ($price === null) {
+            $priceCollection = $product->getPrice();
+            $price = $priceCollection?->first();
+        }
+
+        if ($price === null) {
+            return '';
+        }
+
+        $gross = $price->getGross() * ($price->getCurrencyId() === $currencyId ? 1.0 : $factor);
+
+        return $this->currencyFormatter->formatCurrencyByLanguage(
+            $gross,
+            $currency->getIsoCode(),
+            $salesChannelContext->getContext()->getLanguageId(),
+            $salesChannelContext->getContext()
+        );
     }
 
     /**

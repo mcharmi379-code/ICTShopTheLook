@@ -6,6 +6,7 @@
         <!-- CMS Element Resolver -->
         <service id="ICTECHShopTheLook\Core\Content\Cms\ShopTheLookCmsElementResolver">
             <argument type="service" id="sales_channel.product.repository"/>
+            <argument type="service" id="Shopware\Core\System\Currency\CurrencyFormatter"/>
             <tag name="shopware.cms.data_resolver"/>
         </service>
         
