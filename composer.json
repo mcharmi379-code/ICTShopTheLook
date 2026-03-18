@@ -38,6 +38,7 @@
     "prefer-stable": true,
     "config": {
         "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true,
             "php-http/discovery": true,
             "symfony/flex": true,
             "symfony/runtime": true
@@ -66,6 +67,7 @@
         }
     },
     "require-dev": {
+        "nunomaduro/phpinsights": "^2.13",
         "phpstan/phpstan": "^2.1"
     }
 }

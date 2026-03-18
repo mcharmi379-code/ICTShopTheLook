@@ -3,6 +3,11 @@ import './sw-cms-el-ict-shop-look-slider.scss';
 
 const { Component, Mixin, Filter } = Shopware;
 
+/**
+ * Administration preview component for the 'ict-shop-look-slider' CMS element.
+ * Renders a paginated preview of the configured slider images inside the
+ * CMS page builder canvas (shows 6 items at a time).
+ */
 Component.register('sw-cms-el-ict-shop-look-slider', {
     template,
 
@@ -27,11 +32,13 @@ Component.register('sw-cms-el-ict-shop-look-slider', {
         },
 
         visibleItems() {
-
+            // Show placeholder nulls when no items are configured so the
+            // template can render default preview images in the canvas
             if (!this.sliderItems.length) {
-                return new Array(6).fill(null); // show default preview images
+                return new Array(6).fill(null);
             }
 
+            // Return a window of 6 items starting at the current slider position
             const start = this.sliderPos;
             const end = start + 6;
 

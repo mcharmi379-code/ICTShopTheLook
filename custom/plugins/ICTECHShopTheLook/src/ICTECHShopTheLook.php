@@ -9,13 +9,28 @@ use Shopware\Core\Framework\Plugin\Context\InstallContext;
 use Shopware\Core\Framework\Plugin\Context\UninstallContext;
 use Shopware\Core\Framework\Plugin\Context\UpdateContext;
 
+/**
+ * Main plugin class for ICTECHShopTheLook.
+ *
+ * Registers the plugin with Shopware and handles lifecycle events:
+ * install, uninstall, activate, deactivate, update.
+ */
 class ICTECHShopTheLook extends Plugin
 {
+    /**
+     * Called once when the plugin is installed.
+     * Runs migrations and registers plugin assets via parent.
+     */
     public function install(InstallContext $installContext): void
     {
-        // Do stuff such as creating a new payment method
+        parent::install($installContext);
     }
 
+    /**
+     * Called when the plugin is uninstalled.
+     * If the user chose to keep data, we skip cleanup.
+     * Otherwise, any plugin-specific data removal would go here.
+     */
     public function uninstall(UninstallContext $uninstallContext): void
     {
         parent::uninstall($uninstallContext);
@@ -23,32 +38,50 @@ class ICTECHShopTheLook extends Plugin
         if ($uninstallContext->keepUserData()) {
             return;
         }
-
-        // Remove or deactivate the data created by the plugin
     }
 
+    /**
+     * Called when the plugin is activated.
+     * Parent handles theme recompilation and plugin state update.
+     */
     public function activate(ActivateContext $activateContext): void
     {
-        // Activate entities, such as a new payment method
-        // Or create new entities here, because now your plugin is installed and active for sure
+        parent::activate($activateContext);
     }
 
+    /**
+     * Called when the plugin is deactivated.
+     * Parent handles plugin state update in Shopware.
+     */
     public function deactivate(DeactivateContext $deactivateContext): void
     {
-        // Deactivate entities, such as a new payment method
-        // Or remove previously created entities
+        parent::deactivate($deactivateContext);
     }
 
+    /**
+     * Called when the plugin is updated to a newer version.
+     * Parent runs any pending migrations.
+     */
     public function update(UpdateContext $updateContext): void
     {
-        // Update necessary stuff, mostly non-database related
+        parent::update($updateContext);
     }
 
+    /**
+     * Called after install is complete.
+     * Useful for tasks that require the plugin to be fully installed first.
+     */
     public function postInstall(InstallContext $installContext): void
     {
+        parent::postInstall($installContext);
     }
 
+    /**
+     * Called after update is complete.
+     * Useful for post-migration tasks or cache warming.
+     */
     public function postUpdate(UpdateContext $updateContext): void
     {
+        parent::postUpdate($updateContext);
     }
 }

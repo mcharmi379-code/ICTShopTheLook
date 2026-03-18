@@ -5,6 +5,12 @@ const { Component, Mixin } = Shopware;
 const { moveItem, object: { cloneDeep } } = Shopware.Utils;
 const Criteria = Shopware.Data.Criteria;
 
+/**
+ * Configuration panel component for the 'ict-shop-look-slider' CMS element.
+ * Allows editors to manage the slider image list (upload, reorder, remove),
+ * assign optional click-through URLs to each slide, and configure
+ * autoplay / navigation settings.
+ */
 Component.register('sw-cms-el-config-ict-shop-look-slider', {
     template,
 
@@ -83,6 +89,8 @@ Component.register('sw-cms-el-config-ict-shop-look-slider', {
 
     methods: {
         async initSliderItems() {
+            // Pre-load media entities for any already-configured slider items
+            // so the config UI can display thumbnails immediately on open
             if (this.element.config.sliderItems.value.length > 0) {
                 const mediaIds = this.element.config.sliderItems.value.map(item => item.mediaId);
                 const criteria = new Criteria(1, 25);
@@ -93,10 +101,13 @@ Component.register('sw-cms-el-config-ict-shop-look-slider', {
         },
 
         async onImageUpload(mediaItem) {
+            // Resolve the uploaded item to a full media entity before appending,
+            // because the upload event may only carry a targetId, not the full object
             const resolvedMediaItem = await this.getMediaItem(mediaItem);
             if (!resolvedMediaItem) return;
 
             const sliderItems = this.element.config.sliderItems;
+            // Reset source from 'default' to 'static' on first real upload
             if (sliderItems.source === 'default') {
                 sliderItems.value = [];
                 sliderItems.source = 'static';
@@ -160,6 +171,9 @@ Component.register('sw-cms-el-config-ict-shop-look-slider', {
         },
 
         updateMediaDataValue() {
+            // Keeps element.data.sliderItems in sync with element.config.sliderItems
+            // by merging the resolved media entity objects back into the config values.
+            // element.data is what the preview component reads.
             if (this.element.config.sliderItems.value) {
                 const sliderItems = cloneDeep(this.element.config.sliderItems.value);
                 sliderItems.forEach(sliderItem => {
@@ -182,6 +196,9 @@ Component.register('sw-cms-el-config-ict-shop-look-slider', {
         },
 
         async loadSeoUrls() {
+            // Fetch all canonical, non-deleted SEO URLs and prefix them with the
+            // storefront domain so editors can pick a full URL from a dropdown.
+            // Headless/non-HTTP domains are excluded to avoid invalid URLs.
             // Get storefront domain URL (exclude headless/non-http)
             const domainCriteria = new Criteria(1, 25);
             domainCriteria.addFilter(Criteria.contains('url', 'http'));
@@ -214,6 +231,8 @@ Component.register('sw-cms-el-config-ict-shop-look-slider', {
         },
 
         onChangeAutoSlide(value) {
+            // Reset speed and autoplay timeout to defaults when autoplay is disabled
+            // to avoid stale values persisting in the config
             if (!value) {
                 this.element.config.autoplayTimeout.value = this.autoplayTimeoutDefault;
                 this.element.config.speed.value = this.speedDefault;

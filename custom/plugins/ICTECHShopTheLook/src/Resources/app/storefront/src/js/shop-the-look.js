@@ -1,3 +1,16 @@
+/**
+ * rebuildAddAllForm
+ *
+ * Rebuilds the hidden form inputs for the "Add All to Cart" button
+ * based on the currently checked products and their selected variants.
+ *
+ * Called from the Twig template's form submit handler so the form
+ * always reflects the latest checkbox and variant state at submit time.
+ * Duplicate variants (same variantId) have their quantity incremented
+ * rather than adding a second line item.
+ *
+ * @param {HTMLElement} btn - The "Add All" submit button element
+ */
 window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
             const container = btn.closest('.cms-element-ict-shop-the-look');
             if (!container) return;
@@ -91,13 +104,15 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
         
         document.addEventListener('DOMContentLoaded', function() {
 
-            // Scope all queries to the nearest shop-the-look container
+            // Initialise each shop-the-look element independently so multiple
+            // elements on the same page don't interfere with each other
             const containers = document.querySelectorAll('.cms-element-ict-shop-the-look');
             containers.forEach(function(container) { initContainer(container); });
 
             function initContainer(container) {
             
-            // Product checkbox functionality
+            // Toggle product item visibility and refresh the add-all form
+            // whenever a product checkbox is checked or unchecked
             container.querySelectorAll('.product-select-checkbox').forEach(checkbox => {
                 checkbox.addEventListener('change', function() {
                     const productItem = this.closest('.product-item');
@@ -116,7 +131,8 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                 });
             });
             
-            // Hotspot click to show popup and highlight product
+            // Hotspot click: show the popup tooltip and highlight the
+            // corresponding product card in the product list
             container.querySelectorAll('.shop-the-look-hotspot').forEach(hotspot => {
                 hotspot.addEventListener('click', function(e) {
                     e.stopPropagation();
@@ -154,7 +170,8 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                 });
             });
             
-            // Handle variant selection for individual forms
+            // Handle variant radio selection: resolve the correct variant ID
+            // and update both the individual add-to-cart form and the add-all form
             container.querySelectorAll('.variant-radio').forEach(radio => {
                 radio.addEventListener('change', function() {
                     const productId = this.dataset.productId;
@@ -243,6 +260,14 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                 });
             });
             
+            /**
+             * Finds the variant whose option set exactly matches selectedOptions
+             * (same options, same count — no partial or superset matches).
+             *
+             * @param {Array} variants
+             * @param {string[]} selectedOptions  Array of option IDs
+             * @returns {object|undefined}
+             */
             function findMatchingVariant(variants, selectedOptions) {
                 const match = variants.find(variant => {
                     // Check if this variant has all the selected options
@@ -259,6 +284,14 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                 return match;
             }
             
+            /**
+             * Finds the variant with the most options in common with selectedOptions.
+             * Used as a fallback when no exact match exists (e.g. only one dimension selected).
+             *
+             * @param {Array} variants
+             * @param {string[]} selectedOptions
+             * @returns {object|null}
+             */
             function findBestMatchingVariant(variants, selectedOptions) {
                 let bestMatch = null;
                 let maxMatches = 0;
@@ -278,6 +311,18 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                 return bestMatch;
             }
             
+            /**
+             * Replaces all lineItem hidden inputs in an individual add-to-cart form
+             * with inputs for the given variantId and selectedOptions.
+             *
+             * If variantInStock === false, the add button is disabled and an
+             * out-of-stock message is shown instead of adding form inputs.
+             *
+             * @param {HTMLFormElement} form
+             * @param {string} variantId
+             * @param {string[]} selectedOptions
+             * @param {boolean|undefined} variantInStock
+             */
             function updateFormForVariant(form, variantId, selectedOptions, variantInStock) {
                 // Remove all existing lineItems inputs
                 form.querySelectorAll('input[name*="lineItems["]').forEach(input => input.remove());
@@ -330,6 +375,19 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                 });
             }
             
+            /**
+             * Replaces all hidden inputs for a specific product in the add-all form.
+             *
+             * Removes by both originalProductId and variantId to handle cases where
+             * the variant ID changed after a selection update.
+             * Passing null as variantId removes the product without re-adding it
+             * (used when the selected variant is out of stock).
+             *
+             * @param {HTMLFormElement} addAllForm
+             * @param {string} originalProductId
+             * @param {string|null} variantId
+             * @param {string[]} selectedOptions
+             */
             function updateAddAllFormForProduct(addAllForm, originalProductId, variantId, selectedOptions) {
                 // Remove all existing inputs for this product
                 addAllForm.querySelectorAll(`input[data-product-id="${originalProductId}"]`).forEach(input => input.remove());
@@ -369,6 +427,13 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                 });
             }
             
+            /**
+             * Refreshes the add-all button label and rebuilds the add-all form inputs
+             * to reflect the current set of checked products and their selected variants.
+             *
+             * Button label uses a count placeholder: 'Add %count% to Cart'.
+             * Button is disabled when no products are checked.
+             */
             function updateAddAllButton() {
                 const checkedProducts = container.querySelectorAll('.product-select-checkbox:checked');
                 const addAllButton = container.querySelector('.add-all-to-cart');
@@ -439,6 +504,18 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                 }
             }
             
+            /**
+             * Appends hidden form inputs for one product to the add-all form.
+             *
+             * If the same variantId is already present (e.g. two checked products
+             * resolved to the same variant), its quantity is incremented instead
+             * of creating a duplicate line item.
+             *
+             * @param {HTMLFormElement} addAllForm
+             * @param {string} originalProductId
+             * @param {string} variantId
+             * @param {string[]} selectedOptions
+             */
             function addProductToAddAllForm(addAllForm, originalProductId, variantId, selectedOptions) {
                 // If this variantId already exists in the form, just increment its quantity
                 const existingQty = addAllForm.querySelector(`input[name="lineItems[${variantId}][quantity]"]`);
@@ -477,7 +554,8 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                 });
             }
             
-            // Initialize forms with correct variant data on page load
+            // On page load, initialise each product item's form with the correct
+            // variant based on the pre-selected (or default) radio button state
             container.querySelectorAll('.product-item').forEach(productItem => {
                 const productId = productItem.dataset.productId;
                 
@@ -487,6 +565,17 @@ window.rebuildAddAllForm = function rebuildAddAllForm(btn) {
                 }
             });
             
+            /**
+             * Reads the currently checked variant radios for a product item and
+             * pre-populates both the individual form and the add-all form with
+             * the correct variant inputs.
+             *
+             * Falls back to the first in-stock variant when no radio is pre-selected
+             * (e.g. when variant radios are hidden by the showVariantSwitch config).
+             *
+             * @param {HTMLElement} productItem
+             * @param {string} productId
+             */
             function initializeProductVariants(productItem, productId) {
                 const individualForm = productItem.querySelector('.add-to-cart-form');
                 const addAllForm = container.querySelector('.add-all-form');

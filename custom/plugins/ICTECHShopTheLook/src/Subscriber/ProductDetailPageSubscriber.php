@@ -13,6 +13,16 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Storefront\Page\Product\ProductPageLoadedEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
+/**
+ * Listens to the product detail page load event and attaches
+ * "Shop The Look" related products as a page extension.
+ *
+ * When a product detail page loads, this subscriber scans all
+ * CMS slots of type 'ict-shop-the-look' to find any look that
+ * contains the current product (or its parent variant), then
+ * resolves the other products in that look and attaches them
+ * to the page as 'shopTheLookData'.
+ */
 class ProductDetailPageSubscriber implements EventSubscriberInterface
 {
     /**
@@ -25,6 +35,11 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
     ) {
     }
 
+    /**
+     * Registers the events this subscriber listens to.
+     *
+     * @return array<string, string>
+     */
     public static function getSubscribedEvents(): array
     {
         return [
@@ -32,13 +47,17 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
         ];
     }
 
+    /**
+     * Triggered when a product detail page is loaded.
+     * Fetches related "Shop The Look" products and attaches them to the page.
+     */
     public function onProductPageLoaded(ProductPageLoadedEvent $event): void
     {
         $product = $event->getPage()->getProduct();
         $context = $event->getSalesChannelContext();
 
         $productId = $product->getId();
-        $parentId = $product->getParentId();
+        $parentId  = $product->getParentId();
 
         /** @var array<int, array<string, mixed>> $relatedProducts */
         $relatedProducts = $this->getShopTheLookDataForProduct($productId, $parentId, $context->getContext());
@@ -50,10 +69,20 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
     }
 
     /**
+     * Finds all products associated with the current product via Shop The Look CMS slots.
+     *
+     * Logic uses a two-pass approach:
+     * - Pass 1: Prefer matching by parent product ID (handles variant product pages).
+     *   If the current product is a variant, we look for its parent ID in hotspot configs.
+     * - Pass 2: If no parent match found, fall back to matching by the direct product ID.
+     *
+     * This ensures that visiting any variant of a product still shows the correct look.
+     *
      * @return array<int, array<string, mixed>>
      */
     private function getShopTheLookDataForProduct(string $productId, ?string $parentId, Context $context): array
     {
+        // Load all CMS slots of type 'ict-shop-the-look' with their translations (config is stored in translations)
         $criteria = new Criteria();
         $criteria->addFilter(new EqualsFilter('type', 'ict-shop-the-look'));
         $criteria->addAssociation('translations');
@@ -62,9 +91,11 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
 
         /** @var array<int, string> $associatedProductIds */
         $associatedProductIds = [];
-        $foundByParentMatch = false;
+        $foundByParentMatch   = false;
 
-        // FIRST PASS: Check ALL slots for parent ID matches (preferred)
+        // PASS 1: Check all slots for a hotspot matching the parent product ID.
+        // This is preferred because variant product pages should still find the look
+        // that was configured with the parent product.
         if ($parentId !== null) {
             foreach ($cmsSlots->getElements() as $slot) {
                 $translated = $slot->getTranslated();
@@ -75,9 +106,10 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
                     continue;
                 }
 
-                $hotspots = $hotspotsConfig['value'];
+                $hotspots       = $hotspotsConfig['value'];
                 $parentMatchFound = false;
 
+                // Check if any hotspot in this slot references the parent product
                 foreach ($hotspots as $hotspot) {
                     if (!is_array($hotspot) || !isset($hotspot['productId']) || !is_string($hotspot['productId']) || $hotspot['productId'] === '') {
                         continue;
@@ -90,6 +122,7 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
 
                 if ($parentMatchFound) {
                     $foundByParentMatch = true;
+                    // Collect all other product IDs from this slot (excluding the matched parent)
                     foreach ($hotspots as $hotspot) {
                         if (!is_array($hotspot) || !isset($hotspot['productId']) || !is_string($hotspot['productId']) || $hotspot['productId'] === '') {
                             continue;
@@ -98,12 +131,13 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
                             $associatedProductIds[] = $hotspot['productId'];
                         }
                     }
-                    break;
+                    break; // Stop after first matching slot
                 }
             }
         }
 
-        // SECOND PASS: Only if no parent match found, check for direct product ID matches
+        // PASS 2: Only runs if no parent match was found above.
+        // Falls back to matching by the direct product ID (for simple/non-variant products).
         if (!$foundByParentMatch) {
             foreach ($cmsSlots->getElements() as $slot) {
                 $translated = $slot->getTranslated();
@@ -114,7 +148,7 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
                     continue;
                 }
 
-                $hotspots = $hotspotsConfig['value'];
+                $hotspots         = $hotspotsConfig['value'];
                 $directMatchFound = false;
 
                 foreach ($hotspots as $hotspot) {
@@ -128,6 +162,7 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
                 }
 
                 if ($directMatchFound) {
+                    // Collect all other product IDs from this slot (excluding current product and its parent)
                     foreach ($hotspots as $hotspot) {
                         if (!is_array($hotspot) || !isset($hotspot['productId']) || !is_string($hotspot['productId']) || $hotspot['productId'] === '') {
                             continue;
@@ -141,6 +176,7 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
             }
         }
 
+        // Deduplicate collected product IDs
         /** @var array<int, string> $associatedProductIds */
         $associatedProductIds = array_values(array_unique($associatedProductIds));
 
@@ -148,11 +184,15 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
             return [];
         }
 
+        // Resolve the collected IDs to actual product entities to get their parent IDs
         $checkCriteria = new Criteria($associatedProductIds);
         $checkProducts = $this->productRepository->search($checkCriteria, $context);
 
+        // Use the current product's parent (or itself if it has no parent) as the reference
         $currentParentId = $parentId ?? $productId;
 
+        // Collect the root (parent) product IDs for each associated product,
+        // excluding the current product's own parent to avoid showing the same product
         /** @var array<int, string> $parentProductIds */
         $parentProductIds = [];
         foreach ($checkProducts->getElements() as $checkProduct) {
@@ -172,7 +212,10 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
     }
 
     /**
-     * @param array<int, string> $productIds
+     * Loads full product data including all variants and their options for the given parent product IDs.
+     * Only returns root (non-variant) products; child products are nested under their parent.
+     *
+     * @param array<int, string> $productIds  Array of parent product IDs
      * @return array<int, array<string, mixed>>
      */
     private function getProductsWithVariants(array $productIds, Context $context): array
@@ -188,6 +231,7 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
 
         $result = [];
         foreach ($products->getElements() as $product) {
+            // Skip variant products — we only want root products here
             if ($product->getParentId() !== null) {
                 continue;
             }
@@ -195,11 +239,13 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
             /** @var array<int, array<string, mixed>> $variants */
             $variants = [];
             $children = $product->getChildren();
+
             if ($product->getChildCount() > 0 && $children !== null) {
                 foreach ($children as $variant) {
                     /** @var array<int, array<string, mixed>> $variantOptions */
                     $variantOptions = [];
-                    $options = $variant->getOptions();
+                    $options        = $variant->getOptions();
+
                     if ($options !== null) {
                         foreach ($options as $option) {
                             $group = $option->getGroup();
@@ -207,34 +253,35 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
                                 continue;
                             }
                             $variantOptions[] = [
-                                'group' => $group->getName(),
-                                'option' => $option->getName(),
-                                'groupId' => $group->getId(),
+                                'group'    => $group->getName(),
+                                'option'   => $option->getName(),
+                                'groupId'  => $group->getId(),
                                 'optionId' => $option->getId(),
                             ];
                         }
                     }
+
                     $variants[] = [
-                        'id' => $variant->getId(),
+                        'id'            => $variant->getId(),
                         'productNumber' => $variant->getProductNumber(),
-                        'name' => $variant->getName(),
-                        'price' => $variant->getPrice(),
-                        'cover' => $variant->getCover(),
-                        'options' => $variantOptions,
-                        'stock' => $variant->getStock(),
+                        'name'          => $variant->getName(),
+                        'price'         => $variant->getPrice(),
+                        'cover'         => $variant->getCover(),
+                        'options'       => $variantOptions,
+                        'stock'         => $variant->getStock(),
                     ];
                 }
             }
 
             $result[] = [
-                'id' => $product->getId(),
-                'name' => $product->getName(),
+                'id'            => $product->getId(),
+                'name'          => $product->getName(),
                 'productNumber' => $product->getProductNumber(),
-                'price' => $product->getPrice(),
-                'cover' => $product->getCover(),
-                'stock' => $product->getStock(),
-                'variants' => $variants,
-                'hasVariants' => !empty($variants),
+                'price'         => $product->getPrice(),
+                'cover'         => $product->getCover(),
+                'stock'         => $product->getStock(),
+                'variants'      => $variants,
+                'hasVariants'   => !empty($variants),
             ];
         }
 
