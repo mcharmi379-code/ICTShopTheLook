@@ -8,13 +8,19 @@ use Shopware\Core\Content\Cms\DataResolver\Element\AbstractCmsElementResolver;
 use Shopware\Core\Content\Cms\DataResolver\Element\ElementDataCollection;
 use Shopware\Core\Content\Cms\DataResolver\ResolverContext\ResolverContext;
 use Shopware\Core\Content\Cms\SalesChannel\Struct\TextStruct;
+use Shopware\Core\Content\Product\ProductCollection;
 use Shopware\Core\Content\Product\ProductDefinition;
+use Shopware\Core\Content\Product\ProductEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\EntitySearchResult;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsAnyFilter;
 use Shopware\Core\System\SalesChannel\Entity\SalesChannelRepository;
 
 class ShopTheLookCmsElementResolver extends AbstractCmsElementResolver
 {
+    /**
+     * @param SalesChannelRepository<ProductCollection> $productRepository
+     */
     public function __construct(
         private readonly SalesChannelRepository $productRepository
     ) {
@@ -28,16 +34,16 @@ class ShopTheLookCmsElementResolver extends AbstractCmsElementResolver
     public function collect(CmsSlotEntity $slot, ResolverContext $resolverContext): ?CriteriaCollection
     {
         $config = $slot->getFieldConfig();
-        $hotspots = $config->get('hotspots')?->getValue() ?? [];
-        
-        if (empty($hotspots)) {
+        $hotspotsValue = $config->get('hotspots')?->getValue() ?? [];
+
+        if (!is_array($hotspotsValue) || empty($hotspotsValue)) {
             return null;
         }
 
-        // Extract product IDs from hotspots
+        /** @var string[] $productIds */
         $productIds = [];
-        foreach ($hotspots as $hotspot) {
-            if (!empty($hotspot['productId'])) {
+        foreach ($hotspotsValue as $hotspot) {
+            if (is_array($hotspot) && isset($hotspot['productId']) && is_string($hotspot['productId']) && $hotspot['productId'] !== '') {
                 $productIds[] = $hotspot['productId'];
             }
         }
@@ -47,10 +53,9 @@ class ShopTheLookCmsElementResolver extends AbstractCmsElementResolver
         }
 
         $criteriaCollection = new CriteriaCollection();
-        
-        // Create criteria for products
+
         $criteria = new Criteria();
-        $criteria->addFilter(new EqualsAnyFilter('id', $productIds));
+        $criteria->addFilter(new EqualsAnyFilter('id', array_values($productIds)));
         $criteria->addAssociation('cover');
         $criteria->addAssociation('prices');
         $criteria->addAssociation('options');
@@ -68,7 +73,7 @@ class ShopTheLookCmsElementResolver extends AbstractCmsElementResolver
         $criteria->addAssociation('configuratorSettings.media');
         $criteria->addAssociation('visibilities');
         $criteria->addAssociation('seoUrls');
-        
+
         $criteriaCollection->add('product_' . $slot->getId(), ProductDefinition::class, $criteria);
 
         return $criteriaCollection;
@@ -78,73 +83,77 @@ class ShopTheLookCmsElementResolver extends AbstractCmsElementResolver
     {
         $data = new TextStruct();
         $config = $slot->getFieldConfig();
-        
-        $hotspots = $config->get('hotspots')?->getValue() ?? [];
+
+        $hotspotsValue = $config->get('hotspots')?->getValue() ?? [];
         $lookImage = $config->get('lookImage')?->getValue();
-        
-        // Get products from result
+
         $products = $result->get('product_' . $slot->getId());
-        
-        // Process hotspots with product data
+
         $processedHotspots = [];
-        if ($products) {
-            foreach ($hotspots as $hotspot) {
-                if (!empty($hotspot['productId'])) {
-                    $product = $products->get($hotspot['productId']);
-                    if ($product) {
-                        // For variant products, we need to get the parent product to load all variants
-                        $productForVariants = $product;
-                        
-                        // If this is a child variant, load the parent separately
-                        if ($product->getParentId()) {
-                            $parentCriteria = new Criteria([$product->getParentId()]);
-                            $parentCriteria->addAssociation('children');
-                            $parentCriteria->addAssociation('children.options');
-                            $parentCriteria->addAssociation('children.options.group');
-                            $parentCriteria->addAssociation('children.cover');
-                            
-                            $parentResult = $this->productRepository->search($parentCriteria, $resolverContext->getSalesChannelContext());
-                            $parentProduct = $parentResult->first();
-                            
-                            if ($parentProduct) {
-                                $productForVariants = $parentProduct;
+        if ($products instanceof EntitySearchResult && is_array($hotspotsValue)) {
+            $productCollection = $products->getEntities();
+            foreach ($hotspotsValue as $hotspot) {
+                if (!is_array($hotspot) || !isset($hotspot['productId']) || !is_string($hotspot['productId']) || $hotspot['productId'] === '') {
+                    continue;
+                }
+
+                $product = $productCollection->get($hotspot['productId']);
+                if (!$product instanceof ProductEntity) {
+                    continue;
+                }
+
+                $productForVariants = $product;
+
+                $parentId = $product->getParentId();
+                if ($parentId !== null) {
+                    $parentCriteria = new Criteria([$parentId]);
+                    $parentCriteria->addAssociation('children');
+                    $parentCriteria->addAssociation('children.options');
+                    $parentCriteria->addAssociation('children.options.group');
+                    $parentCriteria->addAssociation('children.cover');
+
+                    $parentResult = $this->productRepository->search($parentCriteria, $resolverContext->getSalesChannelContext());
+                    $parentProduct = $parentResult->first();
+                    if ($parentProduct instanceof ProductEntity) {
+                        $productForVariants = $parentProduct;
+                    }
+                }
+
+                $allVariants = $this->loadAllVariantsForProduct($productForVariants);
+
+                $variantMappingData = [];
+                $children = $productForVariants->getChildren();
+                if ($children !== null && $children->count() > 0) {
+                    foreach ($children as $child) {
+                        /** @var ProductEntity $child */
+                        $childOptions = [];
+                        $childOptionCollection = $child->getOptions();
+                        if ($childOptionCollection !== null) {
+                            foreach ($childOptionCollection as $option) {
+                                $childOptions[] = $option->getId();
                             }
                         }
-                        
-                        // Load all variants for this product (or its parent)
-                        $allVariants = $this->loadAllVariantsForProduct($productForVariants, $resolverContext);
-                        
-                        // Also get variant mapping data for JavaScript
-                        $variantMappingData = [];
-                        if ($productForVariants->getChildren() && $productForVariants->getChildren()->count() > 0) {
-                            foreach ($productForVariants->getChildren() as $child) {
-                                $childOptions = [];
-                                if ($child->getOptions()) {
-                                    foreach ($child->getOptions() as $option) {
-                                        $childOptions[] = $option->getId();
-                                    }
-                                }
-                                $availableStock = $child->getAvailableStock() ?? $child->getStock() ?? 0;
-                                $variantMappingData[] = [
-                                    'id' => $child->getId(),
-                                    'name' => $child->getTranslated()['name'] ?? $child->getName(),
-                                    'options' => $childOptions,
-                                    'inStock' => $child->getActive() && $availableStock > 0,
-                                ];
-                            }
-                        }
-                        
-                        $processedHotspots[] = [
-                            'id' => $hotspot['id'] ?? uniqid(),
-                            'xPosition' => $hotspot['xPosition'] ?? 50,
-                            'yPosition' => $hotspot['yPosition'] ?? 50,
-                            'product' => $product,
-                            'allVariants' => $allVariants,
-                            'variantMappingData' => $variantMappingData,
-                            'parentProduct' => $productForVariants
+                        $availableStock = $child->getAvailableStock() ?? $child->getStock();
+                        $translated = $child->getTranslated();
+                        $name = isset($translated['name']) && is_string($translated['name']) ? $translated['name'] : ($child->getName() ?? '');
+                        $variantMappingData[] = [
+                            'id' => $child->getId(),
+                            'name' => $name,
+                            'options' => $childOptions,
+                            'inStock' => $child->getActive() && $availableStock > 0,
                         ];
                     }
                 }
+
+                $processedHotspots[] = [
+                    'id' => isset($hotspot['id']) && is_string($hotspot['id']) ? $hotspot['id'] : uniqid(),
+                    'xPosition' => $hotspot['xPosition'] ?? 50,
+                    'yPosition' => $hotspot['yPosition'] ?? 50,
+                    'product' => $product,
+                    'allVariants' => $allVariants,
+                    'variantMappingData' => $variantMappingData,
+                    'parentProduct' => $productForVariants,
+                ];
             }
         }
 
@@ -158,65 +167,73 @@ class ShopTheLookCmsElementResolver extends AbstractCmsElementResolver
             'showPrices' => $config->get('showPrices')?->getValue() ?? true,
             'showVariantSwitch' => $config->get('showVariantSwitch')?->getValue() ?? true,
             'addAllToCart' => $config->get('addAllToCart')?->getValue() ?? true,
-            'addSingleProduct' => $config->get('addSingleProduct')?->getValue() ?? true
+            'addSingleProduct' => $config->get('addSingleProduct')?->getValue() ?? true,
         ]);
 
         $slot->setData($data);
     }
-    
-    private function loadAllVariantsForProduct($product, ResolverContext $resolverContext): array
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    private function loadAllVariantsForProduct(ProductEntity $product): array
     {
+        /** @var array<string, array<string, mixed>> $allOptions */
         $allOptions = [];
-        
+
         try {
-            // If this product has children, collect options from all children
-            if ($product->getChildren() && $product->getChildren()->count() > 0) {
-                foreach ($product->getChildren() as $child) {
-                    if ($child->getOptions()) {
-                        foreach ($child->getOptions() as $option) {
-                            $group = $option->getGroup();
-                            if ($group) {
-                                $groupName = $group->getName();
-                                if (!isset($allOptions[$groupName])) {
-                                    $allOptions[$groupName] = [];
-                                }
-                                $allOptions[$groupName][$option->getId()] = $option;
-                            }
-                        }
+            $children = $product->getChildren();
+            if ($children !== null && $children->count() > 0) {
+                foreach ($children as $child) {
+                    /** @var ProductEntity $child */
+                    $options = $child->getOptions();
+                    if ($options === null) {
+                        continue;
                     }
-                }
-            }
-            // If no children, use the product's own options and properties
-            else {
-                // Get options from the product
-                if ($product->getOptions()) {
-                    foreach ($product->getOptions() as $option) {
+                    foreach ($options as $option) {
                         $group = $option->getGroup();
-                        if ($group) {
-                            $groupName = $group->getName();
-                            if (!isset($allOptions[$groupName])) {
-                                $allOptions[$groupName] = [];
-                            }
-                            $allOptions[$groupName][$option->getId()] = $option;
+                        if ($group === null) {
+                            continue;
                         }
+                        $groupName = $group->getName();
+                        if (!isset($allOptions[$groupName])) {
+                            $allOptions[$groupName] = [];
+                        }
+                        $allOptions[$groupName][$option->getId()] = $option;
                     }
                 }
-                
-                // Get properties from the product
-                if ($product->getProperties()) {
-                    foreach ($product->getProperties() as $property) {
-                        $group = $property->getGroup();
-                        if ($group) {
-                            $groupName = $group->getName();
-                            if (!isset($allOptions[$groupName])) {
-                                $allOptions[$groupName] = [];
-                            }
-                            $allOptions[$groupName][$property->getId()] = $property;
+            } else {
+                $options = $product->getOptions();
+                if ($options !== null) {
+                    foreach ($options as $option) {
+                        $group = $option->getGroup();
+                        if ($group === null) {
+                            continue;
                         }
+                        $groupName = $group->getName();
+                        if (!isset($allOptions[$groupName])) {
+                            $allOptions[$groupName] = [];
+                        }
+                        $allOptions[$groupName][$option->getId()] = $option;
+                    }
+                }
+
+                $properties = $product->getProperties();
+                if ($properties !== null) {
+                    foreach ($properties as $property) {
+                        $group = $property->getGroup();
+                        if ($group === null) {
+                            continue;
+                        }
+                        $groupName = $group->getName();
+                        if (!isset($allOptions[$groupName])) {
+                            $allOptions[$groupName] = [];
+                        }
+                        $allOptions[$groupName][$property->getId()] = $property;
                     }
                 }
             }
-            
+
             return $allOptions;
         } catch (\Exception $e) {
             return [];

@@ -3,181 +3,179 @@
 namespace ICTECHShopTheLook\Subscriber;
 
 use ICTECHShopTheLook\Struct\ShopTheLookRelatedStruct;
-use Shopware\Storefront\Page\Product\ProductPageLoadedEvent;
+use Shopware\Core\Content\Cms\Aggregate\CmsSlot\CmsSlotCollection;
+use Shopware\Core\Content\Product\ProductCollection;
+use Shopware\Core\Content\Product\ProductEntity;
+use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
+use Shopware\Storefront\Page\Product\ProductPageLoadedEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class ProductDetailPageSubscriber implements EventSubscriberInterface
 {
-    private EntityRepository $cmsSlotRepository;
-    private EntityRepository $productRepository;
-
+    /**
+     * @param EntityRepository<CmsSlotCollection> $cmsSlotRepository
+     * @param EntityRepository<ProductCollection> $productRepository
+     */
     public function __construct(
-        EntityRepository $cmsSlotRepository,
-        EntityRepository $productRepository
+        private readonly EntityRepository $cmsSlotRepository,
+        private readonly EntityRepository $productRepository
     ) {
-        $this->cmsSlotRepository = $cmsSlotRepository;
-        $this->productRepository = $productRepository;
     }
 
     public static function getSubscribedEvents(): array
     {
         return [
-            ProductPageLoadedEvent::class => 'onProductPageLoaded'
+            ProductPageLoadedEvent::class => 'onProductPageLoaded',
         ];
     }
-    
+
     public function onProductPageLoaded(ProductPageLoadedEvent $event): void
     {
         $product = $event->getPage()->getProduct();
         $context = $event->getSalesChannelContext();
-        
+
         $productId = $product->getId();
         $parentId = $product->getParentId();
-        
-        // Get related products using the working logic from Twig extension
+
+        /** @var array<int, array<string, mixed>> $relatedProducts */
         $relatedProducts = $this->getShopTheLookDataForProduct($productId, $parentId, $context->getContext());
-        
+
         if (!empty($relatedProducts)) {
             $struct = new ShopTheLookRelatedStruct($relatedProducts);
             $event->getPage()->addExtension('shopTheLookData', $struct);
         }
     }
 
-    private function getShopTheLookDataForProduct(string $productId, ?string $parentId, $context): array
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function getShopTheLookDataForProduct(string $productId, ?string $parentId, Context $context): array
     {
-        // Search for CMS slots with type 'ict-shop-the-look'
         $criteria = new Criteria();
         $criteria->addFilter(new EqualsFilter('type', 'ict-shop-the-look'));
         $criteria->addAssociation('translations');
-        
+
         $cmsSlots = $this->cmsSlotRepository->search($criteria, $context);
-        
+
+        /** @var array<int, string> $associatedProductIds */
         $associatedProductIds = [];
         $foundByParentMatch = false;
-        
+
         // FIRST PASS: Check ALL slots for parent ID matches (preferred)
-        if ($parentId) {
+        if ($parentId !== null) {
             foreach ($cmsSlots->getElements() as $slot) {
-                $config = $slot->getTranslated()['config'] ?? [];
-                
-                if (isset($config['hotspots']['value']) && is_array($config['hotspots']['value'])) {
-                    $hotspots = $config['hotspots']['value'];
-                    
-                    // Check if parent ID is in any hotspot
-                    $parentMatchFound = false;
+                $translated = $slot->getTranslated();
+                $config = isset($translated['config']) && is_array($translated['config']) ? $translated['config'] : [];
+
+                $hotspotsConfig = isset($config['hotspots']) && is_array($config['hotspots']) ? $config['hotspots'] : [];
+                if (!isset($hotspotsConfig['value']) || !is_array($hotspotsConfig['value'])) {
+                    continue;
+                }
+
+                $hotspots = $hotspotsConfig['value'];
+                $parentMatchFound = false;
+
+                foreach ($hotspots as $hotspot) {
+                    if (!is_array($hotspot) || !isset($hotspot['productId']) || !is_string($hotspot['productId']) || $hotspot['productId'] === '') {
+                        continue;
+                    }
+                    if ($hotspot['productId'] === $parentId) {
+                        $parentMatchFound = true;
+                        break;
+                    }
+                }
+
+                if ($parentMatchFound) {
+                    $foundByParentMatch = true;
                     foreach ($hotspots as $hotspot) {
-                        if (isset($hotspot['productId']) && !empty($hotspot['productId'])) {
-                            if ($hotspot['productId'] === $parentId) {
-                                $parentMatchFound = true;
-                                break;
-                            }
+                        if (!is_array($hotspot) || !isset($hotspot['productId']) || !is_string($hotspot['productId']) || $hotspot['productId'] === '') {
+                            continue;
+                        }
+                        if ($hotspot['productId'] !== $parentId) {
+                            $associatedProductIds[] = $hotspot['productId'];
                         }
                     }
-                    
-                    if ($parentMatchFound) {
-                        $foundByParentMatch = true;
-                        
-                        // Add all OTHER products from this Shop The Look
-                        foreach ($hotspots as $hotspot) {
-                            if (isset($hotspot['productId']) && !empty($hotspot['productId'])) {
-                                $hotspotProductId = $hotspot['productId'];
-                                
-                                // Exclude the parent ID (current product's parent)
-                                if ($hotspotProductId !== $parentId) {
-                                    $associatedProductIds[] = $hotspotProductId;
-                                }
-                            }
-                        }
-                        break; // Found the correct Shop The Look
-                    }
+                    break;
                 }
             }
         }
-        
+
         // SECOND PASS: Only if no parent match found, check for direct product ID matches
         if (!$foundByParentMatch) {
             foreach ($cmsSlots->getElements() as $slot) {
-                $config = $slot->getTranslated()['config'] ?? [];
-                
-                if (isset($config['hotspots']['value']) && is_array($config['hotspots']['value'])) {
-                    $hotspots = $config['hotspots']['value'];
-                    
-                    // Check if current product ID is in any hotspot
-                    $directMatchFound = false;
+                $translated = $slot->getTranslated();
+                $config = isset($translated['config']) && is_array($translated['config']) ? $translated['config'] : [];
+
+                $hotspotsConfig = isset($config['hotspots']) && is_array($config['hotspots']) ? $config['hotspots'] : [];
+                if (!isset($hotspotsConfig['value']) || !is_array($hotspotsConfig['value'])) {
+                    continue;
+                }
+
+                $hotspots = $hotspotsConfig['value'];
+                $directMatchFound = false;
+
+                foreach ($hotspots as $hotspot) {
+                    if (!is_array($hotspot) || !isset($hotspot['productId']) || !is_string($hotspot['productId']) || $hotspot['productId'] === '') {
+                        continue;
+                    }
+                    if ($hotspot['productId'] === $productId) {
+                        $directMatchFound = true;
+                        break;
+                    }
+                }
+
+                if ($directMatchFound) {
                     foreach ($hotspots as $hotspot) {
-                        if (isset($hotspot['productId']) && !empty($hotspot['productId'])) {
-                            if ($hotspot['productId'] === $productId) {
-                                $directMatchFound = true;
-                                break;
-                            }
+                        if (!is_array($hotspot) || !isset($hotspot['productId']) || !is_string($hotspot['productId']) || $hotspot['productId'] === '') {
+                            continue;
+                        }
+                        if ($hotspot['productId'] !== $productId && $hotspot['productId'] !== $parentId) {
+                            $associatedProductIds[] = $hotspot['productId'];
                         }
                     }
-                    
-                    if ($directMatchFound) {
-                        // Add all OTHER products from this Shop The Look
-                        foreach ($hotspots as $hotspot) {
-                            if (isset($hotspot['productId']) && !empty($hotspot['productId'])) {
-                                $hotspotProductId = $hotspot['productId'];
-                                
-                                // Exclude current product and its parent
-                                if ($hotspotProductId !== $productId && $hotspotProductId !== $parentId) {
-                                    $associatedProductIds[] = $hotspotProductId;
-                                }
-                            }
-                        }
-                        break; // Found a Shop The Look
-                    }
+                    break;
                 }
             }
         }
-        
-        // Remove duplicates and get parent product IDs for any variants
-        $associatedProductIds = array_unique($associatedProductIds);
-        
-        // Convert variant IDs to parent IDs if needed
+
+        /** @var array<int, string> $associatedProductIds */
+        $associatedProductIds = array_values(array_unique($associatedProductIds));
+
+        if (empty($associatedProductIds)) {
+            return [];
+        }
+
+        $checkCriteria = new Criteria($associatedProductIds);
+        $checkProducts = $this->productRepository->search($checkCriteria, $context);
+
+        $currentParentId = $parentId ?? $productId;
+
+        /** @var array<int, string> $parentProductIds */
         $parentProductIds = [];
-        if (!empty($associatedProductIds)) {
-            $checkCriteria = new Criteria($associatedProductIds);
-            $checkProducts = $this->productRepository->search($checkCriteria, $context);
-            
-            // Get the current product's parent ID for proper exclusion
-            $currentParentId = $parentId; // If current product is variant, this is its parent
-            if ($currentParentId === null) {
-                // Current product is parent, so exclude it directly
-                $currentParentId = $productId;
-            }
-            
-            foreach ($checkProducts->getElements() as $checkProduct) {
-                $targetParentId = null;
-                
-                if ($checkProduct->getParentId() !== null) {
-                    // This is a variant, use parent ID
-                    $targetParentId = $checkProduct->getParentId();
-                } else {
-                    // This is already a parent product
-                    $targetParentId = $checkProduct->getId();
-                }
-                
-                // Only add if it's not the same as current product's parent
-                if ($targetParentId !== $currentParentId) {
-                    $parentProductIds[] = $targetParentId;
-                }
+        foreach ($checkProducts->getElements() as $checkProduct) {
+            $targetParentId = $checkProduct->getParentId() ?? $checkProduct->getId();
+            if ($targetParentId !== $currentParentId) {
+                $parentProductIds[] = $targetParentId;
             }
         }
-        
-        $parentProductIds = array_unique($parentProductIds);
-        
+
+        $parentProductIds = array_values(array_unique($parentProductIds));
+
         if (empty($parentProductIds)) {
             return [];
         }
-        
+
         return $this->getProductsWithVariants($parentProductIds, $context);
     }
 
-    private function getProductsWithVariants(array $productIds, $context): array
+    /**
+     * @param array<int, string> $productIds
+     * @return array<int, array<string, mixed>>
+     */
+    private function getProductsWithVariants(array $productIds, Context $context): array
     {
         $criteria = new Criteria($productIds);
         $criteria->addAssociation('cover.media');
@@ -185,33 +183,37 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
         $criteria->addAssociation('children.options.group');
         $criteria->addAssociation('children.prices');
         $criteria->addAssociation('prices');
-        
+
         $products = $this->productRepository->search($criteria, $context);
-        
+
         $result = [];
         foreach ($products->getElements() as $product) {
-            // Skip if this is a variant (child product) - we only want parent products
             if ($product->getParentId() !== null) {
                 continue;
             }
-            
+
+            /** @var array<int, array<string, mixed>> $variants */
             $variants = [];
-            
-            // Get variants if it's a parent product
-            if ($product->getChildCount() > 0 && $product->getChildren()) {
-                foreach ($product->getChildren() as $variant) {
+            $children = $product->getChildren();
+            if ($product->getChildCount() > 0 && $children !== null) {
+                foreach ($children as $variant) {
+                    /** @var array<int, array<string, mixed>> $variantOptions */
                     $variantOptions = [];
-                    if ($variant->getOptions()) {
-                        foreach ($variant->getOptions() as $option) {
+                    $options = $variant->getOptions();
+                    if ($options !== null) {
+                        foreach ($options as $option) {
+                            $group = $option->getGroup();
+                            if ($group === null) {
+                                continue;
+                            }
                             $variantOptions[] = [
-                                'group' => $option->getGroup()->getName(),
+                                'group' => $group->getName(),
                                 'option' => $option->getName(),
-                                'groupId' => $option->getGroup()->getId(),
-                                'optionId' => $option->getId()
+                                'groupId' => $group->getId(),
+                                'optionId' => $option->getId(),
                             ];
                         }
                     }
-                    
                     $variants[] = [
                         'id' => $variant->getId(),
                         'productNumber' => $variant->getProductNumber(),
@@ -219,11 +221,11 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
                         'price' => $variant->getPrice(),
                         'cover' => $variant->getCover(),
                         'options' => $variantOptions,
-                        'stock' => $variant->getStock()
+                        'stock' => $variant->getStock(),
                     ];
                 }
             }
-            
+
             $result[] = [
                 'id' => $product->getId(),
                 'name' => $product->getName(),
@@ -232,10 +234,10 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
                 'cover' => $product->getCover(),
                 'stock' => $product->getStock(),
                 'variants' => $variants,
-                'hasVariants' => !empty($variants)
+                'hasVariants' => !empty($variants),
             ];
         }
-        
+
         return $result;
     }
 }
