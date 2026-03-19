@@ -58,6 +58,7 @@ Component.register('sw-cms-el-config-ict-shop-look-slider', {
         autoplayTimeoutDefault() {
             return 5000;
         },
+        
 
         navigationArrowsValueOptions() {
             return [
