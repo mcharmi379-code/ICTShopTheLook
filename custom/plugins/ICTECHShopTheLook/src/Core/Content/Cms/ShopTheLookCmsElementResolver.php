@@ -1,7 +1,12 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace ICTECHShopTheLook\Core\Content\Cms;
 
+use ICTECHShopTheLook\Service\ProductVariantOptionsResolver;
+use ICTECHShopTheLook\Service\ShopTheLookElementConfig;
+use ICTECHShopTheLook\Service\VariantMappingBuilder;
 use Shopware\Core\Content\Cms\Aggregate\CmsSlot\CmsSlotEntity;
 use Shopware\Core\Content\Cms\DataResolver\CriteriaCollection;
 use Shopware\Core\Content\Cms\DataResolver\Element\AbstractCmsElementResolver;
@@ -14,30 +19,20 @@ use Shopware\Core\Content\Product\ProductEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\EntitySearchResult;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsAnyFilter;
-use ICTECHShopTheLook\Service\ShopTheLookElementConfig;
 use Shopware\Core\System\Currency\CurrencyFormatter;
 use Shopware\Core\System\SalesChannel\Entity\SalesChannelRepository;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 
-/**
- * CMS element resolver for the 'ict-shop-the-look' element type.
- *
- * Responsible for two phases of the CMS rendering pipeline:
- * - collect(): Declares which product data needs to be fetched before rendering.
- * - enrich():  Processes the fetched data and assigns it to the CMS slot for use in Twig.
- *
- * Each hotspot in the element config references a product ID. This resolver
- * loads those products (including their variants), resolves formatted prices,
- * and builds the variant mapping data needed by the storefront JS.
- */
-class ShopTheLookCmsElementResolver extends AbstractCmsElementResolver
+final class ShopTheLookCmsElementResolver extends AbstractCmsElementResolver
 {
     /**
      * @param SalesChannelRepository<ProductCollection> $productRepository
      */
     public function __construct(
         private readonly SalesChannelRepository $productRepository,
-        private readonly CurrencyFormatter $currencyFormatter
+        private readonly CurrencyFormatter $currencyFormatter,
+        private readonly ProductVariantOptionsResolver $variantOptionsResolver,
+        private readonly VariantMappingBuilder $variantMappingBuilder
     ) {
     }
 
@@ -46,29 +41,102 @@ class ShopTheLookCmsElementResolver extends AbstractCmsElementResolver
         return 'ict-shop-the-look';
     }
 
-    public function collect(CmsSlotEntity $slot, ResolverContext $resolverContext): ?CriteriaCollection
-    {
-        $config        = $slot->getFieldConfig();
-        $hotspotsValue = $config->get('hotspots')?->getValue() ?? [];
+    public function collect(
+        CmsSlotEntity $slot,
+        ResolverContext $resolverContext
+    ): ?CriteriaCollection {
+        // $resolverContext is required by interface but not used in this implementation
+        unset($resolverContext);
+        $productIds = $this->extractProductIdsFromSlot($slot);
 
-        if (!is_array($hotspotsValue) || empty($hotspotsValue)) {
-            return null;
-        }
-
-        /** @var string[] $productIds */
-        $productIds = [];
-        foreach ($hotspotsValue as $hotspot) {
-            if (is_array($hotspot) && isset($hotspot['productId']) && is_string($hotspot['productId']) && $hotspot['productId'] !== '') {
-                $productIds[] = $hotspot['productId'];
-            }
-        }
-
-        if (empty($productIds)) {
+        if ($productIds === []) {
             return null;
         }
 
         $criteriaCollection = new CriteriaCollection();
+        $criteriaCollection->add('product_' . $slot->getId(), ProductDefinition::class, $this->buildProductCriteria($productIds));
 
+        return $criteriaCollection;
+    }
+
+    public function enrich(CmsSlotEntity $slot, ResolverContext $resolverContext, ElementDataCollection $result): void
+    {
+        $config = $slot->getFieldConfig();
+        $hotspotsValue = $config->get('hotspots')?->getValue() ?? [];
+        $products = $result->get('product_' . $slot->getId());
+
+        $processedHotspots = [];
+        if ($products instanceof EntitySearchResult && is_array($hotspotsValue)) {
+            /** @var \Shopware\Core\Framework\DataAbstractionLayer\Search\EntitySearchResult<\Shopware\Core\Content\Product\ProductCollection> $products */
+            $processedHotspots = $this->processHotspots($hotspotsValue, $products, $resolverContext);
+        }
+
+        $slot->setData($this->buildSlotData(new ShopTheLookElementConfig($config), $processedHotspots));
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $processedHotspots
+     */
+    private function buildSlotData(ShopTheLookElementConfig $elementConfig, array $processedHotspots): TextStruct
+    {
+        $slotData = new TextStruct();
+        $slotData->assign([
+            'lookImage' => $elementConfig->getLookImage(),
+            'hotspots' => $processedHotspots,
+            'imageDimension' => $elementConfig->getImageDimension(),
+            'customWidth' => $elementConfig->getCustomWidth(),
+            'customHeight' => $elementConfig->getCustomHeight(),
+            'layoutStyle' => $elementConfig->getLayoutStyle(),
+            'showPrices' => $elementConfig->isShowPrices(),
+            'showVariantSwitch' => $elementConfig->isShowVariantSwitch(),
+            'addAllToCart' => $elementConfig->isAddAllToCart(),
+            'addSingleProduct' => $elementConfig->isAddSingleProduct(),
+        ]);
+
+        return $slotData;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function extractProductIdsFromSlot(CmsSlotEntity $slot): array
+    {
+        $hotspotsValue = $slot->getFieldConfig()->get('hotspots')?->getValue() ?? [];
+
+        if (! is_array($hotspotsValue) || $hotspotsValue === []) {
+            return [];
+        }
+
+        return $this->collectProductIdsFromHotspots($hotspotsValue);
+    }
+
+    /**
+     * @param array<mixed> $hotspotsValue
+     *
+     * @return array<int, string>
+     */
+    private function collectProductIdsFromHotspots(array $hotspotsValue): array
+    {
+        $productIds = [];
+        foreach ($hotspotsValue as $hotspot) {
+            if (! is_array($hotspot)) {
+                continue;
+            }
+            /** @var array<string, mixed> $hotspot */
+            $productId = $this->extractHotspotProductId($hotspot);
+            if ($productId !== null) {
+                $productIds[] = $productId;
+            }
+        }
+
+        return $productIds;
+    }
+
+    /**
+     * @param array<int, string> $productIds
+     */
+    private function buildProductCriteria(array $productIds): Criteria
+    {
         $criteria = new Criteria();
         $criteria->addFilter(new EqualsAnyFilter('id', array_values($productIds)));
         $criteria->addAssociation('cover');
@@ -89,124 +157,126 @@ class ShopTheLookCmsElementResolver extends AbstractCmsElementResolver
         $criteria->addAssociation('visibilities');
         $criteria->addAssociation('seoUrls');
 
-        $criteriaCollection->add('product_' . $slot->getId(), ProductDefinition::class, $criteria);
-
-        return $criteriaCollection;
+        return $criteria;
     }
 
-    public function enrich(CmsSlotEntity $slot, ResolverContext $resolverContext, ElementDataCollection $result): void
-    {
-        $slotData    = new TextStruct();
-        $config      = $slot->getFieldConfig();
-        $elementConfig = new ShopTheLookElementConfig($config);
-
-        $hotspotsValue = $config->get('hotspots')?->getValue() ?? [];
-
-        $products = $result->get('product_' . $slot->getId());
-
+    /**
+     * @param array<mixed> $hotspotsValue
+     * @param EntitySearchResult<\Shopware\Core\Content\Product\ProductCollection> $products
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function processHotspots(
+        array $hotspotsValue,
+        EntitySearchResult $products,
+        ResolverContext $resolverContext
+    ): array {
+        /** @var ProductCollection $productCollection */
+        $productCollection = $products->getEntities();
         $processedHotspots = [];
-        if ($products instanceof EntitySearchResult && is_array($hotspotsValue)) {
-            $productCollection = $products->getEntities();
 
-            foreach ($hotspotsValue as $hotspot) {
-                if (!is_array($hotspot) || !isset($hotspot['productId']) || !is_string($hotspot['productId']) || $hotspot['productId'] === '') {
-                    continue;
-                }
-
-                $product = $productCollection->get($hotspot['productId']);
-                if (!$product instanceof ProductEntity) {
-                    continue;
-                }
-
-                $productForVariants = $product;
-                $parentId = $product->getParentId();
-                if ($parentId !== null) {
-                    $parentCriteria = new Criteria([$parentId]);
-                    $parentCriteria->addAssociation('children');
-                    $parentCriteria->addAssociation('children.options');
-                    $parentCriteria->addAssociation('children.options.group');
-                    $parentCriteria->addAssociation('children.cover');
-
-                    $parentResult  = $this->productRepository->search($parentCriteria, $resolverContext->getSalesChannelContext());
-                    $parentProduct = $parentResult->first();
-                    if ($parentProduct instanceof ProductEntity) {
-                        $productForVariants = $parentProduct;
-                    }
-                }
-
-                $allVariants        = $this->loadAllVariantsForProduct($productForVariants);
-                $variantMappingData = [];
-                $children           = $productForVariants->getChildren();
-                if ($children !== null && $children->count() > 0) {
-                    foreach ($children as $child) {
-                        /** @var ProductEntity $child */
-                        $childOptions          = [];
-                        $childOptionCollection = $child->getOptions();
-                        if ($childOptionCollection !== null) {
-                            foreach ($childOptionCollection as $option) {
-                                $childOptions[] = $option->getId();
-                            }
-                        }
-
-                        $availableStock = $child->getAvailableStock() ?? $child->getStock();
-                        $translated     = $child->getTranslated();
-                        $name           = isset($translated['name']) && is_string($translated['name']) ? $translated['name'] : ($child->getName() ?? '');
-
-                        $variantMappingData[] = [
-                            'id'      => $child->getId(),
-                            'name'    => $name,
-                            'options' => $childOptions,
-                            'inStock' => $child->getActive() && $availableStock > 0,
-                        ];
-                    }
-                }
-
-                $processedHotspots[] = [
-                    'id'                 => isset($hotspot['id']) && is_string($hotspot['id']) ? $hotspot['id'] : uniqid(),
-                    'xPosition'          => $hotspot['xPosition'] ?? 50,
-                    'yPosition'          => $hotspot['yPosition'] ?? 50,
-                    'product'            => $product,
-                    'allVariants'        => $allVariants,
-                    'variantMappingData' => $variantMappingData,
-                    'parentProduct'      => $productForVariants,
-                    'formattedPrice'     => $this->resolveFormattedPrice($product, $resolverContext->getSalesChannelContext()),
-                ];
+        foreach ($hotspotsValue as $hotspot) {
+            if (! is_array($hotspot)) {
+                continue;
+            }
+            /** @var array<string, mixed> $hotspot */
+            $processed = $this->processSingleHotspot($hotspot, $productCollection, $resolverContext);
+            if ($processed !== null) {
+                $processedHotspots[] = $processed;
             }
         }
 
-        $slotData->assign([
-            'lookImage'         => $elementConfig->getLookImage(),
-            'hotspots'          => $processedHotspots,
-            'imageDimension'    => $elementConfig->getImageDimension(),
-            'customWidth'       => $elementConfig->getCustomWidth(),
-            'customHeight'      => $elementConfig->getCustomHeight(),
-            'layoutStyle'       => $elementConfig->getLayoutStyle(),
-            'showPrices'        => $elementConfig->isShowPrices(),
-            'showVariantSwitch' => $elementConfig->isShowVariantSwitch(),
-            'addAllToCart'      => $elementConfig->isAddAllToCart(),
-            'addSingleProduct'  => $elementConfig->isAddSingleProduct(),
-        ]);
+        return $processedHotspots;
+    }
 
-        $slot->setData($slotData);
+    /**
+     * @param array<string, mixed> $hotspot
+     *
+     * @return array<string, mixed>|null
+     */
+    private function processSingleHotspot(
+        array $hotspot,
+        ProductCollection $productCollection,
+        ResolverContext $resolverContext
+    ): ?array {
+        $productId = $this->extractHotspotProductId($hotspot);
+        if ($productId === null) {
+            return null;
+        }
+
+        $product = $productCollection->get($productId);
+        if (!$product instanceof ProductEntity) {
+            return null;
+        }
+
+        $productForVariants = $this->resolveProductForVariants($product, $resolverContext->getSalesChannelContext());
+
+        return $this->buildHotspotData($hotspot, $product, $productForVariants, $resolverContext->getSalesChannelContext());
+    }
+
+    /**
+     * @param array<string, mixed> $hotspot
+     */
+    private function extractHotspotProductId(array $hotspot): ?string
+    {
+        if (!isset($hotspot['productId'])
+            || !is_string($hotspot['productId'])
+            || $hotspot['productId'] === ''
+        ) {
+            return null;
+        }
+
+        return $hotspot['productId'];
+    }
+
+    private function resolveProductForVariants(ProductEntity $product, SalesChannelContext $salesChannelContext): ProductEntity
+    {
+        $parentId = $product->getParentId();
+        if ($parentId === null) {
+            return $product;
+        }
+
+        $parentCriteria = new Criteria([$parentId]);
+        $parentCriteria->addAssociation('children');
+        $parentCriteria->addAssociation('children.options');
+        $parentCriteria->addAssociation('children.options.group');
+        $parentCriteria->addAssociation('children.cover');
+
+        $parentProduct = $this->productRepository->search($parentCriteria, $salesChannelContext)->first();
+
+        return $parentProduct instanceof ProductEntity ? $parentProduct : $product;
+    }
+
+    /**
+     * @param array<string, mixed> $hotspot
+     *
+     * @return array<string, mixed>
+     */
+    private function buildHotspotData(array $hotspot, ProductEntity $product, ProductEntity $productForVariants, SalesChannelContext $salesChannelContext): array
+    {
+        return [
+            'id' => isset($hotspot['id']) && is_string($hotspot['id']) ? $hotspot['id'] : uniqid(),
+            'xPosition' => $hotspot['xPosition'] ?? 50,
+            'yPosition' => $hotspot['yPosition'] ?? 50,
+            'product' => $product,
+            'allVariants' => $this->variantOptionsResolver->resolve($productForVariants),
+            'variantMappingData' => $this->variantMappingBuilder->build($productForVariants),
+            'parentProduct' => $productForVariants,
+            'formattedPrice' => $this->resolveFormattedPrice($product, $salesChannelContext),
+        ];
     }
 
     private function resolveFormattedPrice(ProductEntity $product, SalesChannelContext $salesChannelContext): string
     {
-        $currency   = $salesChannelContext->getCurrency();
+        $currency = $salesChannelContext->getCurrency();
         $currencyId = $currency->getId();
-        $factor     = $currency->getFactor();
-
-        $price = $product->getCurrencyPrice($currencyId);
-
-        if ($price === null) {
-            $price = $product->getPrice()?->first();
-        }
+        $price = $product->getCurrencyPrice($currencyId) ?? $product->getPrice()?->first();
 
         if ($price === null) {
             return '';
         }
 
-        $gross = $price->getGross() * ($price->getCurrencyId() === $currencyId ? 1.0 : $factor);
+        $gross = $price->getGross() * ($price->getCurrencyId() === $currencyId ? 1.0 : $currency->getFactor());
 
         return $this->currencyFormatter->formatCurrencyByLanguage(
             $gross,
@@ -214,75 +284,5 @@ class ShopTheLookCmsElementResolver extends AbstractCmsElementResolver
             $salesChannelContext->getContext()->getLanguageId(),
             $salesChannelContext->getContext()
         );
-    }
-
-    /**
-     * @return array<string, array<string, mixed>>
-     */
-    private function loadAllVariantsForProduct(ProductEntity $product): array
-    {
-        /** @var array<string, array<string, mixed>> $allOptions */
-        $allOptions = [];
-
-        try {
-            $children = $product->getChildren();
-
-            if ($children !== null && $children->count() > 0) {
-                foreach ($children as $child) {
-                    /** @var ProductEntity $child */
-                    $options = $child->getOptions();
-                    if ($options === null) {
-                        continue;
-                    }
-                    foreach ($options as $option) {
-                        $group = $option->getGroup();
-                        if ($group === null) {
-                            continue;
-                        }
-                        $groupName = $group->getName();
-                        if (!isset($allOptions[$groupName])) {
-                            $allOptions[$groupName] = [];
-                        }
-                        $allOptions[$groupName][$option->getId()] = $option;
-                    }
-                }
-
-                return $allOptions;
-            }
-
-            $options = $product->getOptions();
-            if ($options !== null) {
-                foreach ($options as $option) {
-                    $group = $option->getGroup();
-                    if ($group === null) {
-                        continue;
-                    }
-                    $groupName = $group->getName();
-                    if (!isset($allOptions[$groupName])) {
-                        $allOptions[$groupName] = [];
-                    }
-                    $allOptions[$groupName][$option->getId()] = $option;
-                }
-            }
-
-            $properties = $product->getProperties();
-            if ($properties !== null) {
-                foreach ($properties as $property) {
-                    $group = $property->getGroup();
-                    if ($group === null) {
-                        continue;
-                    }
-                    $groupName = $group->getName();
-                    if (!isset($allOptions[$groupName])) {
-                        $allOptions[$groupName] = [];
-                    }
-                    $allOptions[$groupName][$property->getId()] = $property;
-                }
-            }
-
-            return $allOptions;
-        } catch (\Exception) {
-            return [];
-        }
     }
 }
