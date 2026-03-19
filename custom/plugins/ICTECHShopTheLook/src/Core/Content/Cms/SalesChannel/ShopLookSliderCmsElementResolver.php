@@ -17,7 +17,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
  * - collect(): Declares which media entities need to be fetched for the slider items.
  * - enrich():  Attaches the resolved media objects back to each slider item and sets slot data.
  */
-class IctShopLookSliderCmsElementResolver extends AbstractCmsElementResolver
+class ShopLookSliderCmsElementResolver extends AbstractCmsElementResolver
 {
     /**
      * Returns the CMS element type identifier this resolver handles.
@@ -39,14 +39,12 @@ class IctShopLookSliderCmsElementResolver extends AbstractCmsElementResolver
         $config            = $slot->getFieldConfig();
         $sliderItemsConfig = $config->get('sliderItems');
 
-        // Skip if config is missing or dynamically mapped (not static)
         if (!$sliderItemsConfig || $sliderItemsConfig->isMapped()) {
             return null;
         }
 
         $sliderItems = $sliderItemsConfig->getArrayValue();
 
-        // Extract all non-empty mediaId strings from the slider items array
         /** @var list<string> $mediaIds */
         $mediaIds = array_values(array_filter(array_column($sliderItems, 'mediaId'), 'is_string'));
 
@@ -57,8 +55,6 @@ class IctShopLookSliderCmsElementResolver extends AbstractCmsElementResolver
         $criteria = new Criteria($mediaIds);
 
         $criteriaCollection = new CriteriaCollection();
-        // Key includes the slot's unique identifier to avoid collisions when
-        // multiple slider elements exist on the same CMS page
         $criteriaCollection->add('media_' . $slot->getUniqueIdentifier(), MediaDefinition::class, $criteria);
 
         return $criteriaCollection;
@@ -83,21 +79,19 @@ class IctShopLookSliderCmsElementResolver extends AbstractCmsElementResolver
         $sliderItemsValue = $sliderItemsConfig->getArrayValue();
         $mediaResult      = $result->get('media_' . $slot->getUniqueIdentifier());
 
-        // Attach the resolved media entity to each slider item by its mediaId
-        foreach ($sliderItemsValue as &$item) {
-            if (!is_array($item)) {
+        foreach ($sliderItemsValue as &$sliderItem) {
+            if (!is_array($sliderItem)) {
                 continue;
             }
-            $mediaId = isset($item['mediaId']) && is_string($item['mediaId']) ? $item['mediaId'] : null;
+            $mediaId = isset($sliderItem['mediaId']) && is_string($sliderItem['mediaId']) ? $sliderItem['mediaId'] : null;
             if ($mediaId !== null && $mediaResult) {
-                $media = $mediaResult->get($mediaId);
-                if ($media) {
-                    $item['media'] = $media;
+                $mediaEntity = $mediaResult->get($mediaId);
+                if ($mediaEntity) {
+                    $sliderItem['media'] = $mediaEntity;
                 }
             }
         }
 
-        // Wrap in ArrayStruct so Twig can access it as element.data.sliderItems
         $slot->setData(new \Shopware\Core\Framework\Struct\ArrayStruct(['sliderItems' => $sliderItemsValue]));
     }
 }

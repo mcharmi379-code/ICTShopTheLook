@@ -82,7 +82,6 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
      */
     private function getShopTheLookDataForProduct(string $productId, ?string $parentId, Context $context): array
     {
-        // Load all CMS slots of type 'ict-shop-the-look' with their translations (config is stored in translations)
         $criteria = new Criteria();
         $criteria->addFilter(new EqualsFilter('type', 'ict-shop-the-look'));
         $criteria->addAssociation('translations');
@@ -93,28 +92,16 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
         $associatedProductIds = [];
         $foundByParentMatch   = false;
 
-        // PASS 1: Check all slots for a hotspot matching the parent product ID.
-        // This is preferred because variant product pages should still find the look
-        // that was configured with the parent product.
         if ($parentId !== null) {
             foreach ($cmsSlots->getElements() as $slot) {
-                $translated = $slot->getTranslated();
-                $config = isset($translated['config']) && is_array($translated['config']) ? $translated['config'] : [];
-
-                $hotspotsConfig = isset($config['hotspots']) && is_array($config['hotspots']) ? $config['hotspots'] : [];
-                if (!isset($hotspotsConfig['value']) || !is_array($hotspotsConfig['value'])) {
+                $hotspots = $this->extractHotspotsFromSlot($slot);
+                if ($hotspots === null) {
                     continue;
                 }
 
-                $hotspots       = $hotspotsConfig['value'];
                 $parentMatchFound = false;
-
-                // Check if any hotspot in this slot references the parent product
                 foreach ($hotspots as $hotspot) {
-                    if (!is_array($hotspot) || !isset($hotspot['productId']) || !is_string($hotspot['productId']) || $hotspot['productId'] === '') {
-                        continue;
-                    }
-                    if ($hotspot['productId'] === $parentId) {
+                    if ($this->isValidHotspot($hotspot) && $hotspot['productId'] === $parentId) {
                         $parentMatchFound = true;
                         break;
                     }
@@ -122,52 +109,8 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
 
                 if ($parentMatchFound) {
                     $foundByParentMatch = true;
-                    // Collect all other product IDs from this slot (excluding the matched parent)
                     foreach ($hotspots as $hotspot) {
-                        if (!is_array($hotspot) || !isset($hotspot['productId']) || !is_string($hotspot['productId']) || $hotspot['productId'] === '') {
-                            continue;
-                        }
-                        if ($hotspot['productId'] !== $parentId) {
-                            $associatedProductIds[] = $hotspot['productId'];
-                        }
-                    }
-                    break; // Stop after first matching slot
-                }
-            }
-        }
-
-        // PASS 2: Only runs if no parent match was found above.
-        // Falls back to matching by the direct product ID (for simple/non-variant products).
-        if (!$foundByParentMatch) {
-            foreach ($cmsSlots->getElements() as $slot) {
-                $translated = $slot->getTranslated();
-                $config = isset($translated['config']) && is_array($translated['config']) ? $translated['config'] : [];
-
-                $hotspotsConfig = isset($config['hotspots']) && is_array($config['hotspots']) ? $config['hotspots'] : [];
-                if (!isset($hotspotsConfig['value']) || !is_array($hotspotsConfig['value'])) {
-                    continue;
-                }
-
-                $hotspots         = $hotspotsConfig['value'];
-                $directMatchFound = false;
-
-                foreach ($hotspots as $hotspot) {
-                    if (!is_array($hotspot) || !isset($hotspot['productId']) || !is_string($hotspot['productId']) || $hotspot['productId'] === '') {
-                        continue;
-                    }
-                    if ($hotspot['productId'] === $productId) {
-                        $directMatchFound = true;
-                        break;
-                    }
-                }
-
-                if ($directMatchFound) {
-                    // Collect all other product IDs from this slot (excluding current product and its parent)
-                    foreach ($hotspots as $hotspot) {
-                        if (!is_array($hotspot) || !isset($hotspot['productId']) || !is_string($hotspot['productId']) || $hotspot['productId'] === '') {
-                            continue;
-                        }
-                        if ($hotspot['productId'] !== $productId && $hotspot['productId'] !== $parentId) {
+                        if ($this->isValidHotspot($hotspot) && $hotspot['productId'] !== $parentId) {
                             $associatedProductIds[] = $hotspot['productId'];
                         }
                     }
@@ -176,7 +119,32 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
             }
         }
 
-        // Deduplicate collected product IDs
+        if (!$foundByParentMatch) {
+            foreach ($cmsSlots->getElements() as $slot) {
+                $hotspots = $this->extractHotspotsFromSlot($slot);
+                if ($hotspots === null) {
+                    continue;
+                }
+
+                $directMatchFound = false;
+                foreach ($hotspots as $hotspot) {
+                    if ($this->isValidHotspot($hotspot) && $hotspot['productId'] === $productId) {
+                        $directMatchFound = true;
+                        break;
+                    }
+                }
+
+                if ($directMatchFound) {
+                    foreach ($hotspots as $hotspot) {
+                        if ($this->isValidHotspot($hotspot) && $hotspot['productId'] !== $productId && $hotspot['productId'] !== $parentId) {
+                            $associatedProductIds[] = $hotspot['productId'];
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
         /** @var array<int, string> $associatedProductIds */
         $associatedProductIds = array_values(array_unique($associatedProductIds));
 
@@ -184,15 +152,11 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
             return [];
         }
 
-        // Resolve the collected IDs to actual product entities to get their parent IDs
         $checkCriteria = new Criteria($associatedProductIds);
         $checkProducts = $this->productRepository->search($checkCriteria, $context);
 
-        // Use the current product's parent (or itself if it has no parent) as the reference
         $currentParentId = $parentId ?? $productId;
 
-        // Collect the root (parent) product IDs for each associated product,
-        // excluding the current product's own parent to avoid showing the same product
         /** @var array<int, string> $parentProductIds */
         $parentProductIds = [];
         foreach ($checkProducts->getElements() as $checkProduct) {
@@ -209,6 +173,38 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
         }
 
         return $this->getProductsWithVariants($parentProductIds, $context);
+    }
+
+    /**
+     * Extracts the hotspots array from a CMS slot's translated config.
+     * Returns null if the slot has no valid hotspots config.
+     *
+     * @return array<int, mixed>|null
+     */
+    private function extractHotspotsFromSlot(mixed $slot): ?array
+    {
+        $translated     = $slot->getTranslated();
+        $config         = isset($translated['config']) && is_array($translated['config']) ? $translated['config'] : [];
+        $hotspotsConfig = isset($config['hotspots']) && is_array($config['hotspots']) ? $config['hotspots'] : [];
+
+        if (!isset($hotspotsConfig['value']) || !is_array($hotspotsConfig['value'])) {
+            return null;
+        }
+
+        return $hotspotsConfig['value'];
+    }
+
+    /**
+     * Returns true if the hotspot array has a non-empty string productId.
+     *
+     * @param mixed $hotspot
+     */
+    private function isValidHotspot(mixed $hotspot): bool
+    {
+        return is_array($hotspot)
+            && isset($hotspot['productId'])
+            && is_string($hotspot['productId'])
+            && $hotspot['productId'] !== '';
     }
 
     /**
@@ -231,7 +227,6 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
 
         $result = [];
         foreach ($products->getElements() as $product) {
-            // Skip variant products — we only want root products here
             if ($product->getParentId() !== null) {
                 continue;
             }

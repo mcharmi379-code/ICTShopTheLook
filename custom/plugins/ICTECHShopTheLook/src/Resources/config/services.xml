@@ -11,7 +11,7 @@
         </service>
         
         <!-- Slider CMS Element Resolver -->
-        <service id="ICTECHShopTheLook\Core\Content\Cms\SalesChannel\IctShopLookSliderCmsElementResolver">
+        <service id="ICTECHShopTheLook\Core\Content\Cms\SalesChannel\ShopLookSliderCmsElementResolver">
             <tag name="shopware.cms.data_resolver"/>
         </service>
         
