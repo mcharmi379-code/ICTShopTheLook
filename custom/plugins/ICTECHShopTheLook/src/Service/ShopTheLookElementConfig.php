@@ -23,10 +23,12 @@ class ShopTheLookElementConfig
     public function __construct(FieldConfigCollection $config)
     {
         $this->lookImage         = $config->get('lookImage')?->getValue();
-        $this->imageDimension    = (string) ($config->get('imageDimension')?->getValue() ?? '300x300');
+        $imageDimension = $config->get('imageDimension')?->getValue();
+        $this->imageDimension = is_scalar($imageDimension) ? (string) $imageDimension : '300x300';
         $this->customWidth       = (int) ($config->get('customWidth')?->getValue() ?? 300);
         $this->customHeight      = (int) ($config->get('customHeight')?->getValue() ?? 300);
-        $this->layoutStyle       = (string) ($config->get('layoutStyle')?->getValue() ?? 'image-products');
+        $layoutStyle = $config->get('layoutStyle')?->getValue();
+        $this->layoutStyle = is_scalar($layoutStyle) ? (string) $layoutStyle : 'image-products';
         $this->showPrices        = (bool) ($config->get('showPrices')?->getValue() ?? true);
         $this->showVariantSwitch = (bool) ($config->get('showVariantSwitch')?->getValue() ?? true);
         $this->addAllToCart      = (bool) ($config->get('addAllToCart')?->getValue() ?? true);

@@ -101,7 +101,7 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
 
                 $parentMatchFound = false;
                 foreach ($hotspots as $hotspot) {
-                    if ($this->isValidHotspot($hotspot) && $hotspot['productId'] === $parentId) {
+                    if ($this->isValidHotspot($hotspot) && is_array($hotspot) && $hotspot['productId'] === $parentId) {
                         $parentMatchFound = true;
                         break;
                     }
@@ -110,7 +110,7 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
                 if ($parentMatchFound) {
                     $foundByParentMatch = true;
                     foreach ($hotspots as $hotspot) {
-                        if ($this->isValidHotspot($hotspot) && $hotspot['productId'] !== $parentId) {
+                        if ($this->isValidHotspot($hotspot) && is_array($hotspot) && is_string($hotspot['productId']) && $hotspot['productId'] !== $parentId) {
                             $associatedProductIds[] = $hotspot['productId'];
                         }
                     }
@@ -128,7 +128,7 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
 
                 $directMatchFound = false;
                 foreach ($hotspots as $hotspot) {
-                    if ($this->isValidHotspot($hotspot) && $hotspot['productId'] === $productId) {
+                    if ($this->isValidHotspot($hotspot) && is_array($hotspot) && $hotspot['productId'] === $productId) {
                         $directMatchFound = true;
                         break;
                     }
@@ -136,7 +136,7 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
 
                 if ($directMatchFound) {
                     foreach ($hotspots as $hotspot) {
-                        if ($this->isValidHotspot($hotspot) && $hotspot['productId'] !== $productId && $hotspot['productId'] !== $parentId) {
+                        if ($this->isValidHotspot($hotspot) && is_array($hotspot) && is_string($hotspot['productId']) && $hotspot['productId'] !== $productId && $hotspot['productId'] !== $parentId) {
                             $associatedProductIds[] = $hotspot['productId'];
                         }
                     }
@@ -183,15 +183,21 @@ class ProductDetailPageSubscriber implements EventSubscriberInterface
      */
     private function extractHotspotsFromSlot(mixed $slot): ?array
     {
-        $translated     = $slot->getTranslated();
-        $config         = isset($translated['config']) && is_array($translated['config']) ? $translated['config'] : [];
-        $hotspotsConfig = isset($config['hotspots']) && is_array($config['hotspots']) ? $config['hotspots'] : [];
-
-        if (!isset($hotspotsConfig['value']) || !is_array($hotspotsConfig['value'])) {
+        if (!is_object($slot) || !method_exists($slot, 'getTranslated')) {
             return null;
         }
 
-        return $hotspotsConfig['value'];
+        $translated = $slot->getTranslated();
+        if (!is_array($translated) || !isset($translated['config']) || !is_array($translated['config'])) {
+            return null;
+        }
+
+        $hotspotsConfig = $translated['config']['hotspots'] ?? null;
+        if (!is_array($hotspotsConfig) || !isset($hotspotsConfig['value']) || !is_array($hotspotsConfig['value'])) {
+            return null;
+        }
+
+        return array_values($hotspotsConfig['value']);
     }
 
     /**
