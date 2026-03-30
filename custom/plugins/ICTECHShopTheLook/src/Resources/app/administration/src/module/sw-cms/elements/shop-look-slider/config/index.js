@@ -51,6 +51,13 @@ Component.register('sw-cms-el-config-ict-shop-look-slider', {
             return this.element.config?.sliderItems?.value || [];
         },
 
+        categoryCriteria() {
+            const criteria = new Criteria(1, 25);
+            criteria.addSorting(Criteria.sort('name', 'ASC'));
+
+            return criteria;
+        },
+
         speedDefault() {
             return 300;
         },
@@ -113,6 +120,7 @@ Component.register('sw-cms-el-config-ict-shop-look-slider', {
             sliderItems.value.push({
                 mediaUrl: resolvedMediaItem.url,
                 mediaId: resolvedMediaItem.id,
+                cmsPageId: null,
                 url: null,
                 newTab: false,
             });
@@ -150,6 +158,7 @@ Component.register('sw-cms-el-config-ict-shop-look-slider', {
                 sliderItems.value.push({
                     mediaUrl: item.url,
                     mediaId: item.id,
+                    cmsPageId: null,
                     url: null,
                     newTab: false,
                 });
@@ -216,6 +225,12 @@ Component.register('sw-cms-el-config-ict-shop-look-slider', {
 
         onUrlChange(index, value) {
             this.element.config.sliderItems.value[index].url = value || null;
+            this.updateMediaDataValue();
+            this.emitUpdateEl();
+        },
+
+        onCmsPageChange(index, value) {
+            this.element.config.sliderItems.value[index].cmsPageId = value || null;
             this.updateMediaDataValue();
             this.emitUpdateEl();
         },

@@ -69,15 +69,15 @@ function rebuildAddAllForm(btn) {
             addAllForm.appendChild(input);
         });
 
-        selectedOptions.forEach(optionId => {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = `lineItems[${variantIdToUse}][payload][options][${optionId}]`;
-            input.value = optionId;
-            input.classList.add('variant-option', 'product-line-item');
-            input.setAttribute('data-product-id', productId);
-            addAllForm.appendChild(input);
-        });
+         if (selectedOptions.length > 0) {
+            const payloadInput = document.createElement('input');
+            payloadInput.type = 'hidden';
+            payloadInput.name = `lineItems[${variantIdToUse}][payload]`;
+            payloadInput.value = JSON.stringify({ options: Object.fromEntries(selectedOptions.map(id => [id, id])) });
+            payloadInput.classList.add('product-line-item');
+            payloadInput.setAttribute('data-product-id', productId);
+            addAllForm.appendChild(payloadInput);
+        }
     });
 }
 
@@ -271,14 +271,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 form.appendChild(input);
             });
 
-            selectedOptions.forEach(optionId => {
-                const optionInput = document.createElement('input');
-                optionInput.type = 'hidden';
-                optionInput.name = `lineItems[${variantId}][payload][options][${optionId}]`;
-                optionInput.value = optionId;
-                optionInput.classList.add('variant-option');
-                form.appendChild(optionInput);
-            });
+            if (selectedOptions.length > 0) {
+                const payloadInput = document.createElement('input');
+                payloadInput.type = 'hidden';
+                payloadInput.name = `lineItems[${variantId}][payload]`;
+                payloadInput.value = JSON.stringify({ options: Object.fromEntries(selectedOptions.map(id => [id, id])) });
+                payloadInput.classList.add('variant-option');
+                form.appendChild(payloadInput);
+            }
         }
 
         function updateAddAllFormForProduct(addAllForm, originalProductId, variantId, selectedOptions) {
@@ -307,15 +307,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 addAllForm.appendChild(input);
             });
 
-            selectedOptions.forEach(optionId => {
-                const optionInput = document.createElement('input');
-                optionInput.type = 'hidden';
-                optionInput.name = `lineItems[${variantId}][payload][options][${optionId}]`;
-                optionInput.value = optionId;
-                optionInput.classList.add('variant-option', 'product-line-item');
-                optionInput.setAttribute('data-product-id', originalProductId);
-                addAllForm.appendChild(optionInput);
-            });
+             if (selectedOptions.length > 0) {
+                const payloadInput = document.createElement('input');
+                payloadInput.type = 'hidden';
+                payloadInput.name = `lineItems[${variantId}][payload]`;
+                payloadInput.value = JSON.stringify({ options: Object.fromEntries(selectedOptions.map(id => [id, id])) });
+                payloadInput.classList.add('variant-option', 'product-line-item');
+                payloadInput.setAttribute('data-product-id', originalProductId);
+                addAllForm.appendChild(payloadInput);
+            }
         }
 
         function updateAddAllButton() {
@@ -396,15 +396,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 addAllForm.appendChild(input);
             });
 
-            selectedOptions.forEach(optionId => {
-                const optionInput = document.createElement('input');
-                optionInput.type = 'hidden';
-                optionInput.name = `lineItems[${variantId}][payload][options][${optionId}]`;
-                optionInput.value = optionId;
-                optionInput.classList.add('variant-option', 'product-line-item');
-                optionInput.setAttribute('data-product-id', originalProductId);
-                addAllForm.appendChild(optionInput);
-            });
+           if (selectedOptions.length > 0) {
+                const payloadInput = document.createElement('input');
+                payloadInput.type = 'hidden';
+                payloadInput.name = `lineItems[${variantId}][payload]`;
+                payloadInput.value = JSON.stringify({ options: Object.fromEntries(selectedOptions.map(id => [id, id])) });
+                payloadInput.classList.add('variant-option', 'product-line-item');
+                payloadInput.setAttribute('data-product-id', originalProductId);
+                addAllForm.appendChild(payloadInput);
+            }
         }
 
         container.querySelectorAll('.product-item').forEach(productItem => {

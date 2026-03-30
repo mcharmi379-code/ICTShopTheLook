@@ -15,6 +15,7 @@
     },
     "extra": {
         "shopware-plugin-class": "ICTECHShopTheLook\\ICTECHShopTheLook",
+        "plugin-icon": "src/Resources/config/shopthelook.jpg",
         "label": {
             "de-DE": "Shop The Look",
             "en-GB": "Shop The Look"
@@ -23,7 +24,6 @@
             "de-DE": "Ermöglicht das Einbinden von Produkt-Hotspots auf Look-Bildern im CMS, mit Variantenauswahl und In-den-Warenkorb-Funktion.",
             "en-GB": "Enables product hotspots on look images in the CMS, with variant selection and add-to-cart functionality."
         },
-          "plugin-icon": "src/Resources/config/shopthelook.png",
         "copyright": "(c) iCreateive Technologies. All Rights Reserved.",
         "manufacturerLink": {
             "de-DE": "https://www.icreativetechnologies.com/",
@@ -38,6 +38,16 @@
     "autoload": {
         "psr-4": {
             "ICTECHShopTheLook\\": "src/"
+        }
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^2.1",
+        "nunomaduro/phpinsights": "^2.13"
+    },
+    "config": {
+        "allow-plugins": {
+            "symfony/runtime": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true
         }
     }
 }

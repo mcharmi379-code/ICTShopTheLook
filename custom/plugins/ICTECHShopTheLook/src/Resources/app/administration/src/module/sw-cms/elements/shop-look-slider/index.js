@@ -15,6 +15,10 @@ Shopware.Service('cmsService').registerCmsElement({
     previewComponent: 'sw-cms-el-preview-ict-shop-look-slider',
 
     defaultConfig: {
+        heading: {
+            source: 'static',
+            value: 'Shop the Look'
+        },
 
         sliderItems: {
             source: 'static',
@@ -23,6 +27,11 @@ Shopware.Service('cmsService').registerCmsElement({
             entity: {
                 name: 'media'
             }
+        },
+
+        navigationCategoryId: {
+            source: 'static',
+            value: null
         },
 
         navigationArrows: {
