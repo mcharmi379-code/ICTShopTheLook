@@ -40,53 +40,58 @@
             </div>
 
             <div v-if="active === 'settings'">
-                <mt-text-field
-                    v-model="element.config.heading.value"
-                    :label="$t('ict-shop-look-slider.config.heading.label')"
-                    :help-text="$t('ict-shop-look-slider.config.heading.helpText')"
-                    @update:model-value="emitUpdateEl"
+                <sw-text-field
+                    v-model:value="element.config.heading.value"
+                    :label="$tc('ict-shop-look-slider.config.heading.label')"
+                    :help-text="$tc('ict-shop-look-slider.config.heading.helpText')"
+                    @update:value="emitUpdateEl"
                 />
 
-                <mt-select
-                    v-model="element.config.navigationArrows.value"
-                    :label="$t('sw-cms.elements.imageSlider.config.label.navigationArrows')"
+                <sw-single-select
+                    v-model:value="element.config.navigationArrows.value"
+                    :label="$tc('sw-cms.elements.imageSlider.config.label.navigationArrows')"
                     help-text="Choose where the previous/next arrows appear: inside the slider, outside, or hidden."
                     :options="navigationArrowsValueOptions"
-                    @update:model-value="emitUpdateEl"
+                    label-property="label"
+                    value-property="value"
+                    @update:value="emitUpdateEl"
                 />
 
-                <mt-select
-                    v-model="element.config.navigationDots.value"
-                    :label="$t('sw-cms.elements.imageSlider.config.label.navigationDots')"
+                <sw-single-select
+                    v-model:value="element.config.navigationDots.value"
+                    :label="$tc('sw-cms.elements.imageSlider.config.label.navigationDots')"
                     help-text="Choose where the dot indicators appear: inside the slider, outside, or hidden."
                     :options="navigationDotsValueOptions"
-                    @update:model-value="emitUpdateEl"
+                    label-property="label"
+                    value-property="value"
+                    @update:value="emitUpdateEl"
                 />
 
-                <mt-number-field
-                    v-model="element.config.speed.value"
-                    :label="$t('sw-cms.elements.general.config.label.speed')"
+                <sw-number-field
+                    v-model:value="element.config.speed.value"
+                    :label="$tc('sw-cms.elements.general.config.label.speed')"
                     help-text="Transition speed between slides in milliseconds (e.g. 300 = 0.3 seconds)."
                     number-type="int"
                     :min="0"
                     :max="3600000"
+                    @update:value="emitUpdateEl"
                 />
 
-                <mt-switch
-                    v-model="element.config.autoSlide.value"
-                    :label="$t('sw-cms.elements.general.config.label.autoSlide')"
+                <sw-switch-field
+                    v-model:value="element.config.autoSlide.value"
+                    :label="$tc('sw-cms.elements.general.config.label.autoSlide')"
                     help-text="When enabled, the slider advances automatically without user interaction."
-                    bordered
-                    @update:model-value="onChangeAutoSlide"
+                    @update:value="onChangeAutoSlide"
                 />
 
-                <mt-number-field
-                    v-model="element.config.autoplayTimeout.value"
-                    :label="$t('sw-cms.elements.general.config.label.autoplayTimeout')"
+                <sw-number-field
+                    v-model:value="element.config.autoplayTimeout.value"
+                    :label="$tc('sw-cms.elements.general.config.label.autoplayTimeout')"
                     help-text="Time in milliseconds each slide is shown before advancing automatically (requires Auto Slide to be enabled)."
                     number-type="int"
                     :min="0"
                     :max="3600000"
+                    @update:value="emitUpdateEl"
                 />
 
                 {# <sw-entity-single-select
@@ -111,34 +116,59 @@
                         style="width:60px;height:60px;object-fit:cover;margin-bottom:10px;"
                     >
 
+                    <sw-single-select
+                        :value="sliderItem.linkType || 'shopPage'"
+                        :label="$tc('ict-shop-look-slider.config.linkType.label')"
+                        :help-text="$tc('ict-shop-look-slider.config.linkType.helpText')"
+                        :options="linkTypeOptions"
+                        label-property="label"
+                        value-property="value"
+                        @update:value="onLinkTypeChange(index, $event)"
+                    />
+
                     <sw-cms-page-select
+                        v-if="(sliderItem.linkType || 'shopPage') === 'shopPage'"
                         :value="sliderItem.cmsPageId"
                         page-type="page"
-                        :label="$t('ict-shop-look-slider.config.shopPage.label')"
-                        :help-text="$t('ict-shop-look-slider.config.shopPage.helpText')"
-                        :placeholder="$t('ict-shop-look-slider.config.shopPage.placeholder')"
+                        :label="$tc('ict-shop-look-slider.config.shopPage.label')"
+                        :help-text="$tc('ict-shop-look-slider.config.shopPage.helpText')"
+                        :placeholder="$tc('ict-shop-look-slider.config.shopPage.placeholder')"
                         @update:value="onCmsPageChange(index, $event)"
                     />
 
-                    <mt-select
-                        v-if="!sliderItem.cmsPageId"
+                    <sw-single-select
+                        v-if="(sliderItem.linkType || 'shopPage') === 'entity'"
                         :value="sliderItem.url"
-                        :label="$t('ict-shop-look-slider.config.manualLink.label')"
-                        :help-text="$t('ict-shop-look-slider.config.manualLink.helpText')"
+                        :label="$tc('ict-shop-look-slider.config.entityLink.label')"
+                        :help-text="$tc('ict-shop-look-slider.config.entityLink.helpText')"
                         :options="seoUrlOptions"
-                        :placeholder="seoUrlOptions.length ? 'Select a storefront path...' : 'Loading paths...'"
-                        @update:model-value="onUrlChange(index, $event)"
+                        :placeholder="$tc('ict-shop-look-slider.config.entityLink.placeholder')"
+                        label-property="label"
+                        value-property="value"
+                        @update:value="onUrlChange(index, $event)"
                     />
 
-                    <div v-if="!sliderItem.cmsPageId && sliderItem.url" style="margin-top:4px;padding:4px 8px;background:#f5f5f5;border-radius:3px;word-break:break-all;">
+                    <sw-text-field
+                        v-if="(sliderItem.linkType || 'shopPage') === 'custom'"
+                        :value="sliderItem.customUrl"
+                        :label="$tc('ict-shop-look-slider.config.customUrl.label')"
+                        :help-text="$tc('ict-shop-look-slider.config.customUrl.helpText')"
+                        :placeholder="$tc('ict-shop-look-slider.config.customUrl.placeholder')"
+                        @update:value="onCustomUrlChange(index, $event)"
+                    />
+
+                    <div v-if="(sliderItem.linkType || 'shopPage') === 'entity' && sliderItem.url" style="margin-top:4px;padding:4px 8px;background:#f5f5f5;border-radius:3px;word-break:break-all;">
                         <small style="color:#555;">{{ sliderItem.url }}</small>
                     </div>
 
-                    <mt-switch
-                        v-model="sliderItem.newTab"
-                        :label="$t('sw-cms.elements.image.config.label.linkNewTab')"
+                    <div v-if="(sliderItem.linkType || 'shopPage') === 'custom' && sliderItem.customUrl" style="margin-top:4px;padding:4px 8px;background:#f5f5f5;border-radius:3px;word-break:break-all;">
+                        <small style="color:#555;">{{ sliderItem.customUrl }}</small>
+                    </div>
+
+                    <sw-switch-field
+                        v-model:value="sliderItem.newTab"
+                        :label="$tc('sw-cms.elements.image.config.label.linkNewTab')"
                         help-text="When enabled, the link opens in a new browser tab."
-                        bordered
                     />
                 </div>
             </div>

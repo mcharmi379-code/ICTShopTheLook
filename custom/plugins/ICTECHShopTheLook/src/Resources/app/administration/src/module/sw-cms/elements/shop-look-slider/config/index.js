@@ -27,6 +27,14 @@ Component.register('sw-cms-el-config-ict-shop-look-slider', {
     },
 
     computed: {
+        linkTypeOptions() {
+            return [
+                { value: 'shopPage', label: this.$t('ict-shop-look-slider.config.linkType.options.shopPage') },
+                { value: 'entity', label: this.$t('ict-shop-look-slider.config.linkType.options.entity') },
+                { value: 'custom', label: this.$t('ict-shop-look-slider.config.linkType.options.custom') },
+            ];
+        },
+
         uploadTag() {
             return `cms-element-media-config-${this.element.id}`;
         },
@@ -98,12 +106,40 @@ Component.register('sw-cms-el-config-ict-shop-look-slider', {
 
     methods: {
         async initSliderItems() {
-            if (this.element.config.sliderItems.value.length > 0) {
-                const mediaIds = this.element.config.sliderItems.value.map(item => item.mediaId);
+            const sliderItems = this.element.config.sliderItems.value || [];
+
+            if (sliderItems.length > 0) {
+                sliderItems.forEach((item) => {
+                    if (!item.linkType) {
+                        if (item.cmsPageId) {
+                            item.linkType = 'shopPage';
+                        } else if (item.customUrl) {
+                            item.linkType = 'custom';
+                        } else {
+                            item.linkType = 'entity';
+                        }
+                    }
+
+                    if (item.linkType === 'custom' && item.customUrl === undefined) {
+                        item.customUrl = item.url || null;
+                    }
+
+                    if (item.linkType !== 'custom' && item.url === undefined) {
+                        item.url = null;
+                    }
+
+                    if (item.linkType !== 'shopPage' && item.cmsPageId === undefined) {
+                        item.cmsPageId = null;
+                    }
+                });
+
+                const mediaIds = sliderItems.map(item => item.mediaId);
                 const criteria = new Criteria(1, 25);
                 criteria.setIds(mediaIds);
                 const searchResult = await this.mediaRepository.search(criteria);
                 this.mediaItems = mediaIds.map(id => searchResult.get(id)).filter(item => item !== null);
+                this.updateMediaDataValue();
+                this.emitUpdateEl();
             }
         },
 
@@ -120,8 +156,10 @@ Component.register('sw-cms-el-config-ict-shop-look-slider', {
             sliderItems.value.push({
                 mediaUrl: resolvedMediaItem.url,
                 mediaId: resolvedMediaItem.id,
+                linkType: 'shopPage',
                 cmsPageId: null,
                 url: null,
+                customUrl: null,
                 newTab: false,
             });
 
@@ -158,8 +196,10 @@ Component.register('sw-cms-el-config-ict-shop-look-slider', {
                 sliderItems.value.push({
                     mediaUrl: item.url,
                     mediaId: item.id,
+                    linkType: 'shopPage',
                     cmsPageId: null,
                     url: null,
+                    customUrl: null,
                     newTab: false,
                 });
             });
@@ -229,8 +269,33 @@ Component.register('sw-cms-el-config-ict-shop-look-slider', {
             this.emitUpdateEl();
         },
 
+        onCustomUrlChange(index, value) {
+            this.element.config.sliderItems.value[index].customUrl = value || null;
+            this.updateMediaDataValue();
+            this.emitUpdateEl();
+        },
+
         onCmsPageChange(index, value) {
             this.element.config.sliderItems.value[index].cmsPageId = value || null;
+            this.updateMediaDataValue();
+            this.emitUpdateEl();
+        },
+
+        onLinkTypeChange(index, value) {
+            const sliderItem = this.element.config.sliderItems.value[index];
+            sliderItem.linkType = value;
+
+            if (value === 'shopPage') {
+                sliderItem.url = null;
+                sliderItem.customUrl = null;
+            } else if (value === 'entity') {
+                sliderItem.cmsPageId = null;
+                sliderItem.customUrl = null;
+            } else if (value === 'custom') {
+                sliderItem.cmsPageId = null;
+                sliderItem.url = null;
+            }
+
             this.updateMediaDataValue();
             this.emitUpdateEl();
         },

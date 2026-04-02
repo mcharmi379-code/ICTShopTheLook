@@ -6,6 +6,15 @@
                 "label": "Ueberschrift",
                 "helpText": "Wird oberhalb des Sliders im Storefront angezeigt."
             },
+            "linkType": {
+                "label": "Link-Typ",
+                "helpText": "Waehlen Sie aus, wohin dieser Slide beim Klicken verlinken soll.",
+                "options": {
+                    "shopPage": "Shop-Seite",
+                    "entity": "Kategorie- oder Produktdetailseite",
+                    "custom": "Benutzerdefinierte URL"
+                }
+            },
             "navigationCategory": {
                 "label": "Gemeinsame Kategorie",
                 "helpText": "Optional. Wenn gesetzt, werden alle ausgewaehlten Shop-Seiten innerhalb dieser einen Kategoriekontext geoeffnet.",
@@ -16,9 +25,15 @@
                 "helpText": "Optional. Waehlen Sie fuer diesen Slide eine Shop-Seite aus. So ist keine eigene Kategorie pro Look noetig.",
                 "placeholder": "Eine Shop-Seite auswaehlen..."
             },
-            "manualLink": {
-                "label": "Manuelles Linkziel",
-                "helpText": "Nur als Fallback. Verwenden Sie dies nur, wenn der Slide nicht auf eine ausgewaehlte Shop-Seite zeigen soll."
+            "entityLink": {
+                "label": "Kategorie- oder Produktdetailseite",
+                "helpText": "Waehlen Sie eine vorhandene Storefront-URL fuer eine Kategorie- oder Produktdetailseite aus.",
+                "placeholder": "Einen Storefront-Pfad auswaehlen..."
+            },
+            "customUrl": {
+                "label": "Benutzerdefinierte URL",
+                "helpText": "Geben Sie eine interne oder externe URL fuer diesen Slide ein.",
+                "placeholder": "https://example.com/seite"
             }
         },
         "block": {

@@ -6,6 +6,15 @@
                 "label": "Heading",
                 "helpText": "Displayed above the storefront slider."
             },
+            "linkType": {
+                "label": "Link type",
+                "helpText": "Choose where this slide should link when clicked.",
+                "options": {
+                    "shopPage": "Shop Page",
+                    "entity": "Category or Product Detail Page",
+                    "custom": "Custom URL"
+                }
+            },
             "navigationCategory": {
                 "label": "Shared category",
                 "helpText": "Optional. When set, every selected Shop page slide opens inside this one category context.",
@@ -16,9 +25,15 @@
                 "helpText": "Optional. Select a Shop page layout for this slide. This avoids creating a separate category per look.",
                 "placeholder": "Select a Shop page..."
             },
-            "manualLink": {
-                "label": "Manual link target",
-                "helpText": "Fallback only. Use this only when you do not want the slide to open a selected Shop page."
+            "entityLink": {
+                "label": "Category or product detail page",
+                "helpText": "Select an existing storefront category or product detail page URL.",
+                "placeholder": "Select a storefront path..."
+            },
+            "customUrl": {
+                "label": "Custom URL",
+                "helpText": "Enter any internal or external URL for this slide.",
+                "placeholder": "https://example.com/page"
             }
         },
         "block": {
